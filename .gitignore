@@ -1,6 +1,7 @@
 /.idea
 /.ipynb_checkpoints
 /data
+/detection_results
 /sandbox
 __pycache__
 *.zip
