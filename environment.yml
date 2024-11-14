@@ -4,18 +4,16 @@ dependencies:
   - pip
   - pytorch::pytorch
   - pytorch::torchvision
-  - cudatoolkit=10.2
   - pyg::pytorch-scatter
   - conda-forge::imgaug
   - conda-forge::albumentations
-  - py-opencv
   - numpy
   - matplotlib
   - scipy
   - pip:
       - tqdm
       - moderngl
-      - pytorch_lightning
+      - pytorch_lightning==1.5.0
       - wandb
       - trimesh
       - rtree

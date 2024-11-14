@@ -58,3 +58,5 @@ Hier am Beispiel der Datensatzes "ITODD" und "TLESS":
 
 Testen eines Datensatzes mit CosyPose Detections:
 python -m surfemb.scripts.infer_debug data/models/itodd-3qnq15p6.compact.ckpt --device cpu --real --detection
+Inferenz eines Datensatzes:
+python -m surfemb.scripts.infer data/models/itodd-3qnq15p6.compact.ckpt --device cpu
