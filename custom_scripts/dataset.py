@@ -65,7 +65,7 @@ class TLESS(Dataset):
 if __name__ == '__main__':
     tless = TLESS('../data/bop/tless', split='train_pbr')
     rgb, mask, scene_gt, scene_gt_infos = tless[0]
-    # Convert Mask values to grayscale and save
-    mask = mask.sum(dim=0).squeeze(dim=0).numpy()
-    mask = Image.fromarray(mask)
-    mask.save('mask.png')
+    
+    # Print all the different values in mask
+    print(mask[0].shape)
+    print(mask[3].unique())
