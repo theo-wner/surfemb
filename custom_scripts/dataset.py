@@ -8,16 +8,26 @@ from torchvision.io import read_image
 import pickle
 from tqdm import tqdm
 
-class TLESS(Dataset):
+class BOPDataset(Dataset):
     """ Dataset class for TLESS. """
 
     def __init__(self, root_dir, split='train_pbr'):
         """ Args:
+            dataset (string): 'tless' or 'itodd'.
             root_dir (string): Directory with all the images.
-            split (string): 'train_pbr' or 'test_primesense'.
+            split (string): 'train_pbr' or 'test_primesense' for TLESS
+                            'train_pbr' or 'test' for ITODD.
         """
-        self.height = 540
-        self.width = 720
+        self.dataset = root_dir.split('/')[-1]
+        if self.dataset == 'tless':
+            self.height = 540
+            self.width = 720
+            self.num_classes = 20
+        elif self.dataset == 'itodd':
+            self.height = 960
+            self.width = 1280
+            self.num_classes = 28
+
         self.root_dir = root_dir
         self.split = split
         subdirs = os.listdir(os.path.join(root_dir, split))
@@ -25,7 +35,7 @@ class TLESS(Dataset):
         self.rgb_paths = []
 
         # Iterate over all subdirs
-        for subdir in tqdm(self.subdirs, desc='Loading dataset'):
+        for subdir in self.subdirs:
             rgb_path = os.path.join(root_dir, split, subdir, 'rgb')
 
             # Append the paths and scene_gt to the lists
@@ -47,7 +57,7 @@ class TLESS(Dataset):
         boxes, labels = self.get_boxes_labels(scene_gt, scene_gt_info)
 
         mask_path = os.path.join(self.root_dir, self.split, subdir, 'mask_visib')
-        mask_stack = torch.zeros(20, self.height, self.width)
+        mask_stack = torch.zeros(self.num_classes, self.height, self.width)
         for file in os.listdir(mask_path):
             if file.startswith(subdir):
                 mask_id = int(file.split('.')[0].split('_')[-1])
@@ -82,16 +92,12 @@ class TLESS(Dataset):
         return torch.tensor(boxes), torch.tensor(labels)
 
 if __name__ == '__main__':
-    '''
-    tless = TLESS('../data/bop/tless', split='train_pbr')
-    with open('tless.pkl', 'wb') as file:
-        pickle.dump(tless, file)
-    '''
+    tless = BOPDataset('../data/bop/tless', split='train_pbr')
 
-    with open('tless.pkl', 'rb') as file:
-        tless = pickle.load(file)
+    itodd = BOPDataset('../data/bop/itodd', split='test')
 
-    rgb, mask, boxes, labels = tless[0]
+
+    rgb, mask, boxes, labels = itodd[0]
     print(rgb.shape)
     print(mask.shape)
     print(boxes.shape)
