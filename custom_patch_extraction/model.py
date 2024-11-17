@@ -13,12 +13,14 @@ class MaskRCNN(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         images, targets = batch
+
         loss_dict = self.model(images, targets)
         losses = sum(loss for loss in loss_dict.values())
-        self.log("train_loss", losses)
+        self.log("train_loss", losses, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         return losses
 
     def configure_optimizers(self):
         return torch.optim.SGD(
             self.model.parameters(), lr=self.learning_rate, momentum=0.9, weight_decay=0.0005
         )
+
