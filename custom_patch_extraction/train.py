@@ -39,8 +39,8 @@ trainer = pl.Trainer(
     accelerator="gpu",  # Use GPU
     devices=[1],  # Specify GPU index
     precision=16,  # Mixed precision
-    logger=logger,
-    val_check_interval=1,  # Check validation every epoch
+    logger=logger
+    #val_check_interval=1,  # Check validation every epoch
 )
 
 trainer.fit(model, 
