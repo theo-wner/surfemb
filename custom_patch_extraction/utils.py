@@ -37,6 +37,8 @@ def visualize_data(rgb, targets):
     boxes = targets['boxes']
     labels = targets['labels']
     masks = targets['masks']
+    # Rescale masks to [0 255] and convert to uint8
+    masks = (masks * 255).byte()
 
     # Save RGB image and masks as single layer binary images for visualization
     rgb = ToPILImage()(rgb)

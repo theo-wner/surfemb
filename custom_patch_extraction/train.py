@@ -7,10 +7,17 @@ from pytorch_lightning.loggers import TensorBoardLogger
 
 # Initialize the dataset
 train_dataset = BOPDataset(root_dir='../data/bop/tless', split='train_pbr')
-train_dataloader = DataLoader(train_dataset, batch_size=4, shuffle=True, collate_fn=train_dataset.collate_fn)
+train_dataloader = DataLoader(train_dataset, 
+                              batch_size=config.batch_size, 
+                              num_workers=config.num_workers, 
+                              shuffle=True, 
+                              collate_fn=train_dataset.collate_fn,
+                              pin_memory=True,
+                              prefetch_factor=2)
+
 
 # Initialize the model
-model = MaskRCNN(num_classes=train_dataset.num_classes)
+model = MaskRCNN(num_classes=train_dataset.num_classes, learning_rate=config.learning_rate)
 
 # Initialize the TensorBoard logger
 logger = TensorBoardLogger("tb_logs", name="mask_rcnn")
