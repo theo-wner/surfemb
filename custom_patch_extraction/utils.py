@@ -22,7 +22,7 @@ def get_model(num_classes):
     )
     return model
 
-def visualize_data(rgb, targets):
+def visualize_data(rgb, targets, preds=None):
     # Delete content of the figures folder
     folder = './figures/'
     for filename in os.listdir(folder):
@@ -34,30 +34,58 @@ def visualize_data(rgb, targets):
                 shutil.rmtree(file_path)
         except Exception as e:
             print('Failed to delete %s. Reason: %s' % (file_path, e))
-    boxes = targets['boxes']
-    labels = targets['labels']
-    masks = targets['masks']
-    # Rescale masks to [0 255] and convert to uint8
-    masks = (masks * 255).byte()
+
+    boxes_t = targets['boxes']
+    labels_t = targets['labels']
+    masks_t = targets['masks']
+    masks_t = (masks_t * 255).byte()
 
     # Save RGB image and masks as single layer binary images for visualization
     rgb = ToPILImage()(rgb)
     rgb.save('./figures/rgb.png')
-    for i in range(masks.size(0)):
-        mask_img = Image.fromarray((masks[i].numpy()).astype(np.uint8))
-        mask_img.save(f'./figures/mask_{i}_object_{labels[i]}.png')
+    for i in range(masks_t.size(0)):
+        mask_img_t = Image.fromarray((masks_t[i].numpy()).astype(np.uint8))
+        mask_img_t.save(f'./figures/target_mask_{i}_object_{labels_t[i]}.png')
     
     # Visualize the bounding boxes
     fig, ax = plt.subplots(1)
     ax.imshow(rgb)
-    for i in range(boxes.size(0)):
-        box = boxes[i]
-        rect = patches.Rectangle((box[0], box[1]), box[2] - box[0], box[3] - box[1], linewidth=1, edgecolor='r', facecolor='none')
+    for i in range(boxes_t.size(0)):
+        box = boxes_t[i]
+        rect = patches.Rectangle((box[0], box[1]), box[2] - box[0], box[3] - box[1], linewidth=1, edgecolor='g', facecolor='none')
         ax.add_patch(rect)
-        ax.text(box[0], box[1], f'Object {labels[i]}', color='r')
+        ax.text(box[0], box[1], f'Object {labels_t[i]}', color='g')
     plt.axis('off')
-    plt.savefig('./figures/boxes.png')
-    plt.show()
+    plt.savefig('./figures/target_boxes.png')
+    plt.close() 
 
-    # Print the labels
-    print(f"Labels: {labels}")
+    # Do the same for the predictions if available
+    if preds is not None:
+        boxes_p = preds['boxes']
+        labels_p = preds['labels']
+        masks_p = preds['masks']
+        masks_p = (masks_p * 255).byte()
+        for i in range(masks_p.size(0)):
+            mask_img_p = Image.fromarray((masks_p[i].numpy()).astype(np.uint8))
+            mask_img_p.save(f'./figures/pred_mask_{i}_object_{labels_p[i]}.png')
+        fig, ax = plt.subplots(1)
+        ax.imshow(rgb)
+        for i in range(boxes_p.size(0)):
+            box = boxes_p[i]
+            rect = patches.Rectangle((box[0], box[1]), box[2] - box[0], box[3] - box[1], linewidth=1, edgecolor='r', facecolor='none')
+            ax.add_patch(rect)
+            ax.text(box[0], box[1], f'Object {labels_p[i]}', color='r')
+        plt.axis('off')
+        plt.savefig('./figures/pred_boxes.png')
+        plt.close()
+
+    # Save target and pred boxes togheter in a new image  next to each other
+    target_boxes = Image.open('./figures/target_boxes.png')
+
+    pred_boxes = Image.open('./figures/pred_boxes.png')
+    width, height = target_boxes.size
+
+    new_im = Image.new('RGB', (2 * width, height))
+    new_im.paste(target_boxes, (0, 0))
+    new_im.paste(pred_boxes, (width, 0))
+    new_im.save('./figures/target_pred_boxes.png')

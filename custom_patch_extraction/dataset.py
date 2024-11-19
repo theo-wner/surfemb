@@ -121,6 +121,11 @@ if __name__ == '__main__':
     labels = targets['labels']
     mask = targets['masks']
 
+    print(rgb.shape)
+    print(boxes.shape)
+    print(labels.shape)
+    print(mask.shape)
+
     visualize_data(rgb, targets)
 
         
