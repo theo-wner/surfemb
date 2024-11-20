@@ -78,7 +78,9 @@ class BOPDataset(Dataset):
                 relevant_masks.append(file)
         mask_stack = []
         for file in sorted(relevant_masks, key=lambda x: int(x.split('_')[1].split('.')[0])):
-            mask_stack.append(read_image(os.path.join(mask_path, file)).squeeze(0))
+            mask_layer = read_image(os.path.join(mask_path, file)).squeeze(0)
+            mask_layer = (mask_layer > 0).float()
+            mask_stack.append(mask_layer)
 
         boxes, labels, masks = self.get_boxes_labels_masks(scene_gt, scene_gt_info, mask_stack)
 

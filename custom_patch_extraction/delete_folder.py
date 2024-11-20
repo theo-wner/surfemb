@@ -2,7 +2,7 @@ import shutil
 import os
 
 # Specify the folder path
-folder_path = "./wandb"
+folder_path = "./tb_logs"
 
 # Check if the folder exists
 if os.path.exists(folder_path):

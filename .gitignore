@@ -5,3 +5,6 @@
 /sandbox
 __pycache__
 *.zip
+/custom_patch_extraction/figures
+/custom_patch_extraction/maskrcnn
+/custom_patch_extraction/tb_logs

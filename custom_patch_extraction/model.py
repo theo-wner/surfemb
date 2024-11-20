@@ -1,12 +1,16 @@
 import pytorch_lightning as pl
 import torch
 from utils import get_model
+from torchmetrics.detection.mean_ap import MeanAveragePrecision
 
 class MaskRCNN(pl.LightningModule):
-    def __init__(self, num_classes, learning_rate=0.001):
+    def __init__(self, num_classes, learning_rate):
         super().__init__()
         self.model = get_model(num_classes)
         self.learning_rate = learning_rate
+
+        # Metrics for bounding boxes
+        self.box_map = MeanAveragePrecision()
 
     def forward(self, images, targets=None):
         return self.model(images, targets)
@@ -18,9 +22,18 @@ class MaskRCNN(pl.LightningModule):
         losses = sum(loss for loss in loss_dict.values())
         self.log("train_loss", losses, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         return losses
+    
+    def validation_step(self, batch, batch_idx):
+        images, targets = batch
+
+        # Compute predictions
+        preds = self.model(images)
+
+        # Compute the bounding box metrics (mAP)
+        self.box_map.update(preds, targets)
+        self.log("map_50", self.box_map.compute()['map_50'], on_step=True, on_epoch=True, prog_bar=True, logger=True)
 
     def configure_optimizers(self):
         return torch.optim.SGD(
             self.model.parameters(), lr=self.learning_rate, momentum=0.9, weight_decay=0.0005
         )
-
