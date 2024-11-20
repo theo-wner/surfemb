@@ -3,6 +3,7 @@
 import os
 import json
 import torch
+import random
 from torch.utils.data import Dataset
 from torchvision.io import read_image
 from utils import visualize_data
@@ -10,11 +11,10 @@ from utils import visualize_data
 class BOPDataset(Dataset):
     """ Dataset class for TLESS. """
 
-    def __init__(self, root_dir, split='train_pbr'):
+    def __init__(self, root_dir, subset='train_pbr', split='train', test_ratio=0.3):
         """ Args:
-            dataset (string): 'tless' or 'itodd'.
             root_dir (string): Directory with all the images.
-            split (string): 'train_pbr' or 'test_primesense' for TLESS
+            subset (string): 'train_pbr' or 'test_primesense' for TLESS
                             'train_pbr' or 'test' for ITODD.
         """
         self.dataset = root_dir.split('/')[-1]
@@ -28,34 +28,50 @@ class BOPDataset(Dataset):
             self.num_classes = 28
 
         self.root_dir = root_dir
+        self.subset = subset
         self.split = split
-        subdirs = os.listdir(os.path.join(root_dir, split))
+        self.test_ratio = test_ratio
+        subdirs = os.listdir(os.path.join(self.root_dir, self.subset))
         self.subdirs = sorted(subdirs, key=lambda x: int(x))
         self.rgb_paths = []
 
         # Iterate over all subdirs
         for subdir in self.subdirs:
-            rgb_path = os.path.join(root_dir, split, subdir, 'rgb')
+            rgb_path = os.path.join(self.root_dir, self.subset, subdir, 'rgb')
 
             # Append the paths and scene_gt to the lists
             for file in sorted(os.listdir(rgb_path), key=lambda x: int(x.split('.')[0])):
                 self.rgb_paths.append(os.path.join(rgb_path, file))
-                
+
+        # take out a subset of the dataset for testing (30%) 
+        test_size = int(len(self.rgb_paths) * test_ratio)
+        random_indices = sorted(random.sample(range(len(self.rgb_paths)), test_size))
+        self.rgb_paths_test = [self.rgb_paths[i] for i in random_indices]
+        self.rgb_paths_train = [file for i, file in enumerate(self.rgb_paths) if i not in random_indices]
+
+
     def __len__(self):
-        return len(self.rgb_paths)
+        if self.split == 'train':
+            return len(self.rgb_paths_train)
+        elif self.split == 'test':
+            return len(self.rgb_paths_test)
     
     def __getitem__(self, idx):
-        rgb_path = self.rgb_paths[idx]
+        if self.split == 'train':
+            rgb_path = self.rgb_paths_train[idx]
+        elif self.split == 'test':
+            rgb_path = self.rgb_paths_test[idx]
+
         rgb = read_image(rgb_path)
         rgb = rgb.float() / 255.0
 
         subdir = rgb_path.split('/')[-3]
         image_id = int(rgb_path.split('/')[-1].split('.')[0])
 
-        scene_gt = json.load(open(os.path.join(self.root_dir, self.split, subdir, 'scene_gt.json')))[str(image_id)]
-        scene_gt_info = json.load(open(os.path.join(self.root_dir, self.split, subdir, 'scene_gt_info.json')))[str(image_id)]
+        scene_gt = json.load(open(os.path.join(self.root_dir, self.subset, subdir, 'scene_gt.json')))[str(image_id)]
+        scene_gt_info = json.load(open(os.path.join(self.root_dir, self.subset, subdir, 'scene_gt_info.json')))[str(image_id)]
 
-        mask_path = os.path.join(self.root_dir, self.split, subdir, 'mask_visib')
+        mask_path = os.path.join(self.root_dir, self.subset, subdir, 'mask_visib')
         relevant_masks = []
         for file in os.listdir(mask_path):
             if int(file.split('_')[0]) == image_id:
@@ -111,14 +127,10 @@ class BOPDataset(Dataset):
         return tuple(zip(*batch))
 
 if __name__ == '__main__':
-    tless = BOPDataset('../data/bop/tless', split='train_pbr')
+    tless = BOPDataset('../data/bop/tless', subset='train_pbr', split='test', test_ratio=0.1)
 
-    rgb, targets = tless[3450]
-    
-    boxes = targets['boxes']
-    labels = targets['labels']
-    mask = targets['masks']
+    image, targets = tless[0]
 
-    visualize_data(rgb, targets)
+    visualize_data(image, targets)
 
         

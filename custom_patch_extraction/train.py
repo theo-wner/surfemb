@@ -6,7 +6,7 @@ import config
 from pytorch_lightning.loggers import TensorBoardLogger
 
 # Initialize the dataset
-train_dataset = BOPDataset(root_dir='../data/bop/tless', split='train_pbr')
+train_dataset = BOPDataset(root_dir='../data/bop/tless', subset='train_pbr')
 train_dataloader = DataLoader(train_dataset, batch_size=4, shuffle=True, collate_fn=train_dataset.collate_fn)
 
 # Initialize the model
