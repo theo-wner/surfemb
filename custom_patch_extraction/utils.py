@@ -79,13 +79,13 @@ def visualize_data(rgb, targets, preds=None):
         plt.savefig('./figures/pred_boxes.png')
         plt.close()
 
-    # Save target and pred boxes togheter in a new image  next to each other
-    target_boxes = Image.open('./figures/target_boxes.png')
+        # Save target and pred boxes togheter in a new image  next to each other
+        target_boxes = Image.open('./figures/target_boxes.png')
 
-    pred_boxes = Image.open('./figures/pred_boxes.png')
-    width, height = target_boxes.size
+        pred_boxes = Image.open('./figures/pred_boxes.png')
+        width, height = target_boxes.size
 
-    new_im = Image.new('RGB', (2 * width, height))
-    new_im.paste(target_boxes, (0, 0))
-    new_im.paste(pred_boxes, (width, 0))
-    new_im.save('./figures/target_pred_boxes.png')
+        new_im = Image.new('RGB', (2 * width, height))
+        new_im.paste(target_boxes, (0, 0))
+        new_im.paste(pred_boxes, (width, 0))
+        new_im.save('./figures/target_pred_boxes.png')

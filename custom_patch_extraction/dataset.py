@@ -45,6 +45,7 @@ class BOPDataset(Dataset):
 
         # take out a subset of the dataset for testing (30%) 
         test_size = int(len(self.rgb_paths) * test_ratio)
+        random.seed(42) # 42 is the answer to everything
         random_indices = sorted(random.sample(range(len(self.rgb_paths)), test_size))
         self.rgb_paths_test = [self.rgb_paths[i] for i in random_indices]
         self.rgb_paths_train = [file for i, file in enumerate(self.rgb_paths) if i not in random_indices]
@@ -129,10 +130,15 @@ class BOPDataset(Dataset):
         return tuple(zip(*batch))
 
 if __name__ == '__main__':
-    tless = BOPDataset('../data/bop/tless', subset='train_pbr', split='test', test_ratio=0.1)
+    itodd_train = BOPDataset('../data/bop/itodd', subset='train_pbr', split='train', test_ratio=0.1)
+    itodd_test = BOPDataset('../data/bop/itodd', subset='train_pbr', split='test', test_ratio=0.1)  
 
-    image, targets = tless[0]
+    print(f'Number of training samples: {len(itodd_train)}')
+    print(f'Number of test samples: {len(itodd_test)}')
 
-    visualize_data(image, targets)
+    rgb, targets = itodd_train[0]
+    visualize_data(rgb, targets)
+
+    
 
         
