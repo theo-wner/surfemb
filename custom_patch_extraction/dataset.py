@@ -16,6 +16,8 @@ class BOPDataset(Dataset):
             root_dir (string): Directory with all the images.
             subset (string): 'train_pbr' or 'test_primesense' for TLESS
                             'train_pbr' or 'test' for ITODD.
+            split (string): 'train' or 'test'.
+            test_ratio (float): Ratio of the dataset to use for testing.
         """
         self.dataset = root_dir.split('/')[-1]
         if self.dataset == 'tless':
@@ -25,7 +27,7 @@ class BOPDataset(Dataset):
         elif self.dataset == 'itodd':
             self.height = 960
             self.width = 1280
-            self.num_classes = 28
+            self.num_classes = 29
 
         self.root_dir = root_dir
         self.subset = subset
