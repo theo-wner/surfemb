@@ -8,3 +8,5 @@ __pycache__
 /custom_patch_extraction/figures
 /custom_patch_extraction/maskrcnn
 /custom_patch_extraction/tb_logs
+/custom_patch_extraction/checkpoints
+/custom_patch_extraction/terminal_log.txt

@@ -93,29 +93,36 @@ class BOPDataset(Dataset):
 
     def get_boxes_labels_masks(self, scene_gt, scene_gt_info, mask_stack):
         """ Returns the bounding boxes, labels, and masks for the visible objects. """
-        boxes = []
-        labels = []
-        masks = []
+        #boxes = []
+        #labels = []
+        #masks = []
+        boxes = torch.empty((0, 4), dtype=torch.float32)
+        labels = torch.empty((0,), dtype=torch.int64)
+        masks = torch.empty((0, self.height, self.width), dtype=torch.float32)
 
         for obj_cnt in range(len(scene_gt)):
             object = scene_gt[obj_cnt]
             object_info = scene_gt_info[obj_cnt]
             box = self.convert_box(object_info['bbox_visib'])
             if object_info['px_count_visib'] > 0 and self.box_is_valid(box):
-                boxes.append(box)
-                labels.append(object['obj_id'])
-                masks.append(mask_stack[obj_cnt])  # Ensure alignment with mask_stack
+                #boxes.append(box)
+                #labels.append(object['obj_id'])
+                #masks.append(mask_stack[obj_cnt])  # Ensure alignment with mask_stack
+                boxes = torch.cat((boxes, torch.tensor([box], dtype=torch.float32)))
+                labels = torch.cat((labels, torch.tensor([object['obj_id']], dtype=torch.int64)))
+                masks = torch.cat((masks, mask_stack[obj_cnt].unsqueeze(0)))
 
-        if len(boxes) > 0:
-            masks = torch.stack(masks, dim=0)  # Stack masks into a tensor [N, H, W]
-        else:
-            masks = torch.empty((0, self.height, self.width), dtype=torch.float32)
+        #if len(boxes) > 0:
+        #    masks = torch.stack(masks, dim=0)  # Stack masks into a tensor [N, H, W]
+        #else:
+        #    masks = torch.empty((0, self.height, self.width), dtype=torch.float32)
 
-        return (
-            torch.tensor(boxes, dtype=torch.float32),
-            torch.tensor(labels, dtype=torch.int64),
-            masks
-        )
+        #return (
+        #    torch.tensor(boxes, dtype=torch.float32),
+        #    torch.tensor(labels, dtype=torch.int64),
+        #    masks
+        #)
+        return boxes, labels, masks
 
     def convert_box(self, box):
         """ Converts the bounding box from [x, y, w, h] to [x1, y1, x2, y2]. """
@@ -138,7 +145,7 @@ if __name__ == '__main__':
     print(f'Number of training samples: {len(itodd_train)}')
     print(f'Number of test samples: {len(itodd_test)}')
 
-    rgb, targets = itodd_train[0]
+    rgb, targets = itodd_train[1]
     visualize_data(rgb, targets)
 
     

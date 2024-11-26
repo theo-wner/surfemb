@@ -20,18 +20,20 @@ class MaskRCNN(pl.LightningModule):
 
         loss_dict = self.model(images, targets)
         losses = sum(loss for loss in loss_dict.values())
-        self.log("train_loss", losses, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        self.log("train_loss", losses, on_step=True, on_epoch=True, prog_bar=False, logger=True)
         return losses
     
+    def on_validation_epoch_start(self):
+        self.box_map.reset()  # Reset the metric object
+
     def validation_step(self, batch, batch_idx):
         images, targets = batch
-
-        # Compute predictions
         preds = self.model(images)
-
-        # Compute the bounding box metrics (mAP)
         self.box_map.update(preds, targets)
-        self.log("map_50", self.box_map.compute()['map_50'], on_step=True, on_epoch=True, prog_bar=True, logger=True)
+
+    def validation_epoch_end(self, outputs):
+        metrics = self.box_map.compute()
+        self.log("map_50", metrics['map_50'], on_epoch=True, prog_bar=False, logger=True)
 
     def configure_optimizers(self):
         return torch.optim.SGD(
