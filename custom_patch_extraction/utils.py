@@ -89,3 +89,27 @@ def visualize_data(rgb, targets, preds=None):
         new_im.paste(target_boxes, (0, 0))
         new_im.paste(pred_boxes, (width, 0))
         new_im.save('./figures/target_pred_boxes.png')
+
+def compute_iou(box1, box2):
+    """
+    Compute IoU (Intersection over Union) for two boxes.
+    Each box is represented as [x1, y1, x2, y2].
+    """
+    x1 = max(box1[0], box2[0])
+    y1 = max(box1[1], box2[1])
+    x2 = min(box1[2], box2[2])
+    y2 = min(box1[3], box2[3])
+
+    # Compute intersection area
+    inter_area = max(0, x2 - x1) * max(0, y2 - y1)
+
+    # Compute union area
+    box1_area = (box1[2] - box1[0]) * (box1[3] - box1[1])
+    box2_area = (box2[2] - box2[0]) * (box2[3] - box2[1])
+    union_area = box1_area + box2_area - inter_area
+
+    # Avoid division by zero
+    if union_area == 0:
+        return 0
+
+    return inter_area / union_area
