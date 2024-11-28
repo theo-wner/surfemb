@@ -1,6 +1,9 @@
+import warnings
+warnings.showwarning = lambda *args, **kwargs: None
+
 import pytorch_lightning as pl
 import torch
-from utils import get_model
+from custom_patch_extraction.utils import get_model
 from torchmetrics.detection.mean_ap import MeanAveragePrecision
 
 class MaskRCNN(pl.LightningModule):

@@ -25,7 +25,7 @@ def get_model(num_classes):
 
 def visualize_data(rgb, targets, preds=None):
     # Delete content of the figures folder
-    folder = './figures/'
+    folder = './custom_patch_extraction/figures/'
     for filename in os.listdir(folder):
         file_path = os.path.join(folder, filename)
         try:
@@ -43,10 +43,10 @@ def visualize_data(rgb, targets, preds=None):
 
     # Save RGB image and masks as single layer binary images for visualization
     rgb = ToPILImage()(rgb)
-    rgb.save('./figures/rgb.png')
+    rgb.save('./custom_patch_extraction/figures/rgb.png')
     for i in range(masks_t.size(0)):
         mask_img_t = Image.fromarray((masks_t[i].numpy()).astype(np.uint8))
-        mask_img_t.save(f'./figures/target_mask_{i}_object_{labels_t[i]}.png')
+        mask_img_t.save(f'./custom_patch_extraction/figures/target_mask_{i}_object_{labels_t[i]}.png')
     
     # Visualize the bounding boxes
     fig, ax = plt.subplots(1)
@@ -57,7 +57,7 @@ def visualize_data(rgb, targets, preds=None):
         ax.add_patch(rect)
         ax.text(box[0], box[1], f'Object {labels_t[i]}', color='g')
     plt.axis('off')
-    plt.savefig('./figures/target_boxes.png')
+    plt.savefig('./custom_patch_extraction/figures/target_boxes.png')
     plt.close() 
 
     # Do the same for the predictions if available
@@ -68,7 +68,7 @@ def visualize_data(rgb, targets, preds=None):
         masks_p = (masks_p * 255).byte()
         for i in range(masks_p.size(0)):
             mask_img_p = Image.fromarray((masks_p[i].numpy()).astype(np.uint8))
-            mask_img_p.save(f'./figures/pred_mask_{i}_object_{labels_p[i]}.png')
+            mask_img_p.save(f'./custom_patch_extraction/figures/pred_mask_{i}_object_{labels_p[i]}.png')
         fig, ax = plt.subplots(1)
         ax.imshow(rgb)
         for i in range(boxes_p.size(0)):
@@ -77,19 +77,19 @@ def visualize_data(rgb, targets, preds=None):
             ax.add_patch(rect)
             ax.text(box[0], box[1], f'Object {labels_p[i]}', color='r')
         plt.axis('off')
-        plt.savefig('./figures/pred_boxes.png')
+        plt.savefig('./custom_patch_extraction/figures/pred_boxes.png')
         plt.close()
 
         # Save target and pred boxes togheter in a new image  next to each other
-        target_boxes = Image.open('./figures/target_boxes.png')
+        target_boxes = Image.open('./custom_patch_extraction/figures/target_boxes.png')
 
-        pred_boxes = Image.open('./figures/pred_boxes.png')
+        pred_boxes = Image.open('./custom_patch_extraction/figures/pred_boxes.png')
         width, height = target_boxes.size
 
         new_im = Image.new('RGB', (2 * width, height))
         new_im.paste(target_boxes, (0, 0))
         new_im.paste(pred_boxes, (width, 0))
-        new_im.save('./figures/target_pred_boxes.png')
+        new_im.save('./custom_patch_extraction/figures/target_pred_boxes.png')
 
 def compute_iou(box1, box2):
     """

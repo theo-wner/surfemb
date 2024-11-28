@@ -2,7 +2,7 @@ from dataset import BOPDataset
 from torch.utils.data import DataLoader
 from model import MaskRCNN
 import pytorch_lightning as pl
-import config
+from custom_patch_extraction import config
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 
