@@ -7,10 +7,11 @@ from torchvision.transforms import ToPILImage
 from PIL import Image
 import numpy as np
 import matplotlib.patches as patches
+import torch
 
 def get_model(num_classes):
     # Load a pre-trained Mask R-CNN model
-    model = maskrcnn_resnet50_fpn(pretrained=True)
+    model = maskrcnn_resnet50_fpn(weights=True)
     # Update the classifier to match the number of classes
     in_features = model.roi_heads.box_predictor.cls_score.in_features
     model.roi_heads.box_predictor = torchvision.models.detection.faster_rcnn.FastRCNNPredictor(in_features, num_classes)
@@ -113,3 +114,38 @@ def compute_iou(box1, box2):
         return 0
 
     return inter_area / union_area
+
+def filter_boxes(preds, iou_threshold):
+    keep = torch.ones(len(preds['boxes']), dtype=torch.bool)
+    for i in range(len(preds['boxes'])):
+        if keep[i]:
+            for j in range(i + 1, len(preds['boxes'])):
+                if keep[j]:
+                    iou = compute_iou(preds['boxes'][i].cpu().numpy(), preds['boxes'][j].cpu().numpy())
+                    if iou > iou_threshold:
+                        if preds['scores'][i] > preds['scores'][j]:
+                            keep[j] = 0
+                        else:
+                            keep[i] = 0
+                            break
+    preds['boxes'] = preds['boxes'][keep]
+    preds['labels'] = preds['labels'][keep]
+    preds['masks'] = preds['masks'][keep].squeeze(dim=1)
+    preds['scores'] = preds['scores'][keep]
+    return preds
+
+def infer(model, image):
+    """
+    Infer the model on the given image.
+    Args:
+        model: The model to infer.
+        image: The image to infer on.
+    Both the model and the image should be on the same device.
+    """ 
+    model.eval() # Set the model to evaluation mode
+    image = image.unsqueeze(0) # Add a batch dimension
+    with torch.no_grad(): # Disable gradient computation
+        preds = model(image)[0] # Make predictions, 0 because batch size is 1
+    iou_threshold = 0.2 # Set the IoU threshold for filtering overlapping boxes
+    preds = filter_boxes(preds, iou_threshold) # Filter overlapping boxes
+    return preds

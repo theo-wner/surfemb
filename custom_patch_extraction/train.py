@@ -9,29 +9,29 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 # Initialize the datasets
 train_dataset = BOPDataset('../data/bop/itodd', subset='train_pbr', split='train', test_ratio=0.1)
 train_dataloader = DataLoader(train_dataset, 
-                              batch_size=config.batch_size, 
-                              num_workers=config.num_workers, 
+                              batch_size=config.BATCH_SIZE, 
+                              num_workers=config.NUM_WORKERS, 
                               shuffle=True, 
                               collate_fn=train_dataset.collate_fn,
                               pin_memory=True,
                               prefetch_factor=2)
 val_dataset = BOPDataset('../data/bop/itodd', subset='train_pbr', split='test', test_ratio=0.1)  
 val_dataloader = DataLoader(val_dataset, 
-                            batch_size=config.batch_size, 
-                            num_workers=config.num_workers, 
+                            batch_size=config.BATCH_SIZE, 
+                            num_workers=config.NUM_WORKERS, 
                             shuffle=False,
                             collate_fn=val_dataset.collate_fn, 
                             pin_memory=True,
                             prefetch_factor=2)
 
 # Initialize the model
-model = MaskRCNN(num_classes=train_dataset.num_classes, learning_rate=config.learning_rate)
+model = MaskRCNN(num_classes=train_dataset.num_classes, learning_rate=config.LEARNING_RATE)
 
 # Initialize the TensorBoard logger
 logger = TensorBoardLogger("tb_logs", name="mask_rcnn")
 
 # Move the model to the device
-model.to(config.device)
+model.to(config.DEVICE)
 
 # Initialize the ModelCheckpoint callback
 checkpoint_callback = ModelCheckpoint(
@@ -46,7 +46,7 @@ checkpoint_callback = ModelCheckpoint(
 trainer = pl.Trainer(
     max_epochs=50,
     accelerator="gpu",  # Use GPU
-    devices=[config.device_num],  # Specify GPU index
+    devices=[config.DEVICE_NUM],  # Specify GPU index
     precision=16,  # Mixed precision
     logger=logger,
     callbacks=[checkpoint_callback]
