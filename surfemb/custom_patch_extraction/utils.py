@@ -128,13 +128,13 @@ def filter_boxes(preds, iou_threshold):
                         else:
                             keep[i] = 0
                             break
-    preds['boxes'] = preds['boxes'][keep]
+    preds['boxes'] = preds['boxes'][keep].int()
     preds['labels'] = preds['labels'][keep]
     preds['masks'] = preds['masks'][keep].squeeze(dim=1)
     preds['scores'] = preds['scores'][keep]
     return preds
 
-def infer(model, image):
+def infer_detector(model, image):
     """
     Infer the model on the given image.
     Args:
