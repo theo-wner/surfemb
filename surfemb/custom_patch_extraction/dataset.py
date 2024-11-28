@@ -4,6 +4,7 @@ import os
 import json
 import torch
 import random
+import numpy as np
 from torch.utils.data import Dataset
 from torchvision.io import read_image
 from custom_patch_extraction.utils import visualize_data
@@ -73,6 +74,8 @@ class BOPDataset(Dataset):
 
         scene_gt = json.load(open(os.path.join(self.root_dir, self.subset, subdir, 'scene_gt.json')))[str(image_id)]
         scene_gt_info = json.load(open(os.path.join(self.root_dir, self.subset, subdir, 'scene_gt_info.json')))[str(image_id)]
+        scene_camera = json.load(open(os.path.join(self.root_dir, self.subset, subdir, 'scene_camera.json')))[str(image_id)]
+        cam_K = np.array(scene_camera['cam_K']).reshape(3, 3)
 
         mask_path = os.path.join(self.root_dir, self.subset, subdir, 'mask_visib')
         relevant_masks = []
@@ -89,7 +92,7 @@ class BOPDataset(Dataset):
 
         targets = {'boxes': boxes, 'labels': labels, 'masks': masks}
 
-        return rgb, targets
+        return rgb, targets, cam_K
 
     def get_boxes_labels_masks(self, scene_gt, scene_gt_info, mask_stack):
         """ Returns the bounding boxes, labels, and masks for the visible objects. """
