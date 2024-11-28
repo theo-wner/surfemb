@@ -5,8 +5,8 @@
 /sandbox
 __pycache__
 *.zip
-/custom_patch_extraction/figures
-/custom_patch_extraction/maskrcnn
-/custom_patch_extraction/tb_logs
-/custom_patch_extraction/checkpoints
-/custom_patch_extraction/terminal_log.txt
+/surfemb/custom_patch_extraction/figures
+/surfemb/custom_patch_extraction/maskrcnn
+/surfemb/custom_patch_extraction/tb_logs
+/surfemb/custom_patch_extraction/checkpoints
+/surfemb/custom_patch_extraction/terminal_log.txt
