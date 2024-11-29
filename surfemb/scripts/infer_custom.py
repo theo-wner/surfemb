@@ -29,11 +29,7 @@ first_box = preds['boxes'][1]
 first_image_crop = image[:, first_box[1]:first_box[3], first_box[0]:first_box[2]]
 first_obj_idx = preds['labels'][1].item()
 
-# Show the first image crop
-plt.imshow(first_image_crop.permute(1, 2, 0))
-plt.show()
-
 # Infer the embedding model on the first image crop
-
+mask_lgts, query_img = embedding_model.infer_cnn(first_image_crop, first_obj_idx, rotation_ensemble=False)
 
 
