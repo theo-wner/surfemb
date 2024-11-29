@@ -1,5 +1,6 @@
 """ Contains the Datasets TLESS and ITODD. """
 
+from .utils import visualize_data
 import os
 import json
 import torch
@@ -7,7 +8,6 @@ import random
 import numpy as np
 from torch.utils.data import Dataset
 from torchvision.io import read_image
-from custom_patch_extraction.utils import visualize_data
 
 class BOPDataset(Dataset):
     """ Dataset class for TLESS. """
