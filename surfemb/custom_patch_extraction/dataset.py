@@ -88,17 +88,18 @@ class BOPDataset(Dataset):
             mask_layer = (mask_layer > 0).float()
             mask_stack.append(mask_layer)
 
-        boxes, labels, masks = self.get_boxes_labels_masks(scene_gt, scene_gt_info, mask_stack)
+        boxes, labels, masks, rots_trans = self.get_boxes_labels_masks_rt(scene_gt, scene_gt_info, mask_stack)
 
-        targets = {'boxes': boxes, 'labels': labels, 'masks': masks}
+        targets = {'boxes': boxes, 'labels': labels, 'masks': masks, 'R_t': rots_trans}
 
         return rgb, targets, cam_K
 
-    def get_boxes_labels_masks(self, scene_gt, scene_gt_info, mask_stack):
+    def get_boxes_labels_masks_rt(self, scene_gt, scene_gt_info, mask_stack):
         """ Returns the bounding boxes, labels, and masks for the visible objects. """
         boxes = torch.empty((0, 4), dtype=torch.float32)
         labels = torch.empty((0,), dtype=torch.int64)
         masks = torch.empty((0, self.height, self.width), dtype=torch.float32)
+        rots_trans = []
 
         for obj_cnt in range(len(scene_gt)):
             object = scene_gt[obj_cnt]
@@ -108,7 +109,8 @@ class BOPDataset(Dataset):
                 boxes = torch.cat((boxes, torch.tensor([box], dtype=torch.float32)))
                 labels = torch.cat((labels, torch.tensor([object['obj_id']], dtype=torch.int64)))
                 masks = torch.cat((masks, mask_stack[obj_cnt].unsqueeze(0)))
-        return boxes, labels, masks
+                rots_trans.append({'R': np.array(object['cam_R_m2c']).reshape(3,3), 't': np.array(object['cam_t_m2c']).reshape(3,1)})
+        return boxes, labels, masks, rots_trans
 
     def convert_box(self, box):
         """ Converts the bounding box from [x, y, w, h] to [x1, y1, x2, y2]. """

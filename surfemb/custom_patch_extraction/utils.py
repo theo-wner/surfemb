@@ -130,19 +130,19 @@ def filter_boxes(preds, iou_threshold):
                             break
     preds['boxes'] = preds['boxes'][keep].int()
 
-    # ensure that the boxes are divisible by 32
-    preds['boxes'][:, 2] = preds['boxes'][:, 0] + ((preds['boxes'][:, 2] - preds['boxes'][:, 0]) // 32 + 1) * 32
-    preds['boxes'][:, 3] = preds['boxes'][:, 1] + ((preds['boxes'][:, 3] - preds['boxes'][:, 1]) // 32 + 1) * 32
-    # ensure that the boxes are square
-    max_size = torch.max(preds['boxes'][:, 2] - preds['boxes'][:, 0], preds['boxes'][:, 3] - preds['boxes'][:, 1])
-    preds['boxes'][:, 2] = preds['boxes'][:, 0] + max_size
-    preds['boxes'][:, 3] = preds['boxes'][:, 1] + max_size
     # ensure that the boxes are within the image
     im_width, im_height = preds['masks'].size(3), preds['masks'].size(2)
     preds['boxes'][:, 0] = torch.clamp(preds['boxes'][:, 0], min=0, max=im_width)
     preds['boxes'][:, 1] = torch.clamp(preds['boxes'][:, 1], min=0, max=im_height)
     preds['boxes'][:, 2] = torch.clamp(preds['boxes'][:, 2], min=0, max=im_width)
     preds['boxes'][:, 3] = torch.clamp(preds['boxes'][:, 3], min=0, max=im_height)
+    # ensure that the boxes are square, but not larger than the image
+    max_size = torch.min(preds['boxes'][:, 2] - preds['boxes'][:, 0], preds['boxes'][:, 3] - preds['boxes'][:, 1])
+    preds['boxes'][:, 2] = preds['boxes'][:, 0] + max_size
+    preds['boxes'][:, 3] = preds['boxes'][:, 1] + max_size
+    # ensure that the boxes are divisible by 32
+    preds['boxes'][:, 2] = preds['boxes'][:, 0] + ((preds['boxes'][:, 2] - preds['boxes'][:, 0]) // 32) * 32
+    preds['boxes'][:, 3] = preds['boxes'][:, 1] + ((preds['boxes'][:, 3] - preds['boxes'][:, 1]) // 32) * 32
 
     preds['labels'] = preds['labels'][keep]
     preds['masks'] = preds['masks'][keep].squeeze(dim=1)
