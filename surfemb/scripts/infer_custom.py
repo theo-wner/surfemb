@@ -15,7 +15,7 @@ import numpy as np
 
 # Create Dataset and get image
 dataset = BOPDataset('./data/bop/itodd', subset='train_pbr', split='test', test_ratio=0.1)
-image, target, cam_K = dataset[10]
+image, target, cam_K = dataset[1]
 
 # Visualize the data
 plt.imshow(image.permute(1, 2, 0))
@@ -44,7 +44,20 @@ preds = infer_detector(detection_model, image)
 for i in range(len(preds['labels'])):
     # Take out the first image crop
     box = preds['boxes'][i]
+    # Update the camera matrix (Subtract the box coordinates)
+    cam_crop = cam_K
+    #cam_crop[0, 2] -= box[0] # cx
+    #cam_crop[1, 2] -= box[1] # cy
     image_crop = image[:, box[1]:box[3], box[0]:box[2]]
+    # Scale image crop to 224x224
+    #image_crop = torch.nn.functional.interpolate(image_crop.unsqueeze(0), size=(224, 224), mode='bilinear', align_corners=False).squeeze(0)
+    # Correct the camera matrix
+    #old_width, old_height = box[2] - box[0], box[3] - box[1]
+    #cam_crop[0, 0] *= 224 / old_width # fx
+    #cam_crop[1, 1] *= 224 / old_height # fy
+    #cam_crop[0, 2] *= 224 / old_width # cx
+    #cam_crop[1, 2] *= 224 / old_height # cy
+
     obj_idx = preds['labels'][i].item()
 
     # Visualize the data
@@ -70,7 +83,7 @@ for i in range(len(preds['labels'])):
     R_est, t_est, scores, *_ = estimate_pose(
         mask_lgts=mask_lgts, query_img=query_img,
         obj_pts=verts, obj_normals=surface_sample_normals[obj_idx], obj_keys=obj_keys,
-        obj_diameter=obj.diameter, K=cam_K,
+        obj_diameter=obj.diameter, K=cam_crop, max_pool=False, visualize=True,
     )
     success = len(scores) > 0
     if success:
@@ -84,7 +97,7 @@ for i in range(len(preds['labels'])):
     # Refine the pose
     if success:
         R_est_r, t_est_r, score_r = refine_pose(
-            R=R_est, t=t_est, query_img=query_img, K_crop=cam_K,
+            R=R_est, t=t_est, query_img=query_img, K_crop=cam_crop,
             renderer=renderer, obj_idx=obj_idx, obj_=obj, model=embedding_model, keys_verts=obj_keys,
         )
     else:
