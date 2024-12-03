@@ -1,34 +1,18 @@
 from ..custom_patch_extraction.dataset import BOPDataset
 from ..custom_patch_extraction.model import MaskRCNN
-#from ..custom_patch_extraction import config
-from ..custom_patch_extraction.utils import infer_detector, visualize_data
+from ..custom_patch_extraction.utils import infer_detector
 from ..surface_embedding import SurfaceEmbeddingModel
 from ..data.renderer import ObjCoordRenderer
 from ..data.obj import load_objs
-from ..pose_est import estimate_pose
-from ..pose_refine import refine_pose
 from .. import utils
+from .. import pose_est
+from .. import pose_refine
 import torch
 from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
-
-import argparse
-from pathlib import Path
-
 import cv2
 import torch.utils.data
-import numpy as np
-
-from .. import utils
-from ..data import obj
-from ..data.config import config
-from ..data import instance
-from ..data import detector_crops
-from ..data.renderer import ObjCoordRenderer
-from ..surface_embedding import SurfaceEmbeddingModel
-from .. import pose_est
-from .. import pose_refine
 
 # Create Dataset and get image
 dataset = BOPDataset('./data/bop/itodd', subset='train_pbr', split='test', test_ratio=0.1)
@@ -94,18 +78,18 @@ while True:
     obj_idx = preds['labels'][data_i].item() - 1 # surface embedding model uses 0-based indexing
     box = preds['boxes'][data_i]
     img = image[:, box[1]:box[3], box[0]:box[2]]
+    old_width, old_height = img.shape[1], img.shape[2]
     img = torch.nn.functional.interpolate(img.unsqueeze(0), size=(224, 224), mode='bilinear', align_corners=False).squeeze(0)
     img = img.permute(1, 2, 0).cpu().numpy()
     img = (img * 255).astype(np.uint8) # Convert to uint8
-    # Correct the camera matrix
+    # Correct the camera matrix --> apperently not needed
     K_crop = cam_K
-    old_width, old_height = box[2] - box[0], box[3] - box[1]
-    K_crop[0, 0] *= 224 / old_width # fx
-    K_crop[1, 1] *= 224 / old_height # fy
-    K_crop[0, 2] *= 224 / old_width # cx
-    K_crop[1, 2] *= 224 / old_height # cy
-    K_crop[0, 2] -= box[0] # cx
-    K_crop[1, 2] -= box[1] # cy
+    #K_crop[0, 2] -= box[0] # cx
+    #K_crop[1, 2] -= box[1] # cy
+    #K_crop[0, 0] *= res_crop / old_width # fx
+    #K_crop[1, 1] *= res_crop / old_height # fy
+    #K_crop[0, 2] *= res_crop / old_width # cx
+    #K_crop[1, 2] *= res_crop / old_height # cy
     obj_ = objs[obj_idx]
 
     print(f'i: {data_i}, obj_id: {obj_ids[obj_idx]}')
