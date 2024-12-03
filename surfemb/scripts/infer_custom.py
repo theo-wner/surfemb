@@ -19,6 +19,8 @@ image, target, cam_K = dataset[1]
 
 # Visualize the data
 plt.imshow(image.permute(1, 2, 0))
+for box in target['boxes']:
+    plt.plot([box[0], box[2], box[2], box[0], box[0]], [box[1], box[1], box[3], box[3], box[1]], 'g')
 plt.show()
 
 # Load the models
@@ -60,6 +62,7 @@ for i in range(len(preds['labels'])):
     cam_crop[1, 2] *= 224 / old_height # cy
 
     obj_idx = preds['labels'][i].item()
+    print(f'Object index: {obj_idx}')
 
     # Visualize the data
     plt.imshow(image_crop.permute(1, 2, 0))
@@ -84,7 +87,7 @@ for i in range(len(preds['labels'])):
     R_est, t_est, scores, *_ = estimate_pose(
         mask_lgts=mask_lgts, query_img=query_img,
         obj_pts=verts, obj_normals=surface_sample_normals[obj_idx], obj_keys=obj_keys,
-        obj_diameter=obj.diameter, K=cam_crop, max_pool=False, visualize=True,
+        obj_diameter=obj.diameter, K=cam_crop, max_pool=False, visualize=False,
     )
     success = len(scores) > 0
     if success:
