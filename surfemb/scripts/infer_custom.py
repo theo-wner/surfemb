@@ -39,6 +39,10 @@ embedding_model.freeze()
 objs, obj_ids = load_objs(Path('./data/bop/itodd/models'))
 surface_samples, surface_sample_normals = utils.load_surface_samples('itodd', obj_ids)
 
+# Create the renderer
+res_crop = 224
+renderer = ObjCoordRenderer(objs, res_crop)
+
 # Infer the detection model on the image
 preds = infer_detector(detection_model, image)
 
@@ -46,30 +50,25 @@ preds = infer_detector(detection_model, image)
 for i in range(len(preds['labels'])):
     # Take out the first image crop
     box = preds['boxes'][i]
-    # Update the camera matrix (Subtract the box coordinates)
-    cam_crop = cam_K
-    cam_crop[0, 2] -= box[0] # cx
-    cam_crop[1, 2] -= box[1] # cy
+    obj_idx = preds['labels'][i].item()
     # Crop the image
     image_crop = image[:, box[1]:box[3], box[0]:box[2]]
     # Scale image crop to 224x224
     image_crop = torch.nn.functional.interpolate(image_crop.unsqueeze(0), size=(224, 224), mode='bilinear', align_corners=False).squeeze(0)
-    # Correct the camera matrix
+    # Correct the cx and cy offsets
+    cam_crop = cam_K
+    cam_crop[0, 2] -= box[0] # cx
+    cam_crop[1, 2] -= box[1] # cy
+    # Correct the camera matrix for the scaling
     old_width, old_height = box[2] - box[0], box[3] - box[1]
     cam_crop[0, 0] *= 224 / old_width # fx
     cam_crop[1, 1] *= 224 / old_height # fy
     cam_crop[0, 2] *= 224 / old_width # cx
     cam_crop[1, 2] *= 224 / old_height # cy
 
-    obj_idx = preds['labels'][i].item()
-    print(f'Object index: {obj_idx}')
-
     # Visualize the data
     plt.imshow(image_crop.permute(1, 2, 0))
     plt.show()
-
-    # Create the renderer
-    renderer = ObjCoordRenderer(objs, w=image_crop.shape[2], h=image_crop.shape[1])
 
     # Infer the embedding model on the image crop
     mask_lgts, query_img = embedding_model.infer_cnn(image_crop, obj_idx, rotation_ensemble=False)

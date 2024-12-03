@@ -130,19 +130,27 @@ def filter_boxes(preds, iou_threshold):
                             break
     preds['boxes'] = preds['boxes'][keep].int()
 
-    # ensure that the boxes are within the image
+    # Ensure that all the boxes are quadratic --> make them larger if necessary
     im_width, im_height = preds['masks'].size(3), preds['masks'].size(2)
-    preds['boxes'][:, 0] = torch.clamp(preds['boxes'][:, 0], min=0, max=im_width)
-    preds['boxes'][:, 1] = torch.clamp(preds['boxes'][:, 1], min=0, max=im_height)
-    preds['boxes'][:, 2] = torch.clamp(preds['boxes'][:, 2], min=0, max=im_width)
-    preds['boxes'][:, 3] = torch.clamp(preds['boxes'][:, 3], min=0, max=im_height)
-    # ensure that the boxes are square, but not larger than the image
-    max_size = torch.min(preds['boxes'][:, 2] - preds['boxes'][:, 0], preds['boxes'][:, 3] - preds['boxes'][:, 1])
-    preds['boxes'][:, 2] = preds['boxes'][:, 0] + max_size
-    preds['boxes'][:, 3] = preds['boxes'][:, 1] + max_size
-    # ensure that the boxes are divisible by 32
-    preds['boxes'][:, 2] = preds['boxes'][:, 0] + ((preds['boxes'][:, 2] - preds['boxes'][:, 0]) // 32) * 32
-    preds['boxes'][:, 3] = preds['boxes'][:, 1] + ((preds['boxes'][:, 3] - preds['boxes'][:, 1]) // 32) * 32
+    for i in range(len(preds['boxes'])):
+        box = preds['boxes'][i]
+        width = box[2] - box[0]
+        height = box[3] - box[1]
+        if width > height:
+            diff = width - height
+            box[1] = max(0, box[1] - diff // 2)
+            box[3] = min(im_height, box[3] + diff - diff // 2)
+        else:
+            diff = height - width
+            box[0] = max(0, box[0] - diff // 2)
+            box[2] = min(im_width, box[2] + diff - diff // 2)
+        preds['boxes'][i] = box
+        
+    # Pad the boxes to be divisible by 32 and within the image
+    preds['boxes'][:, 0] = torch.clamp(preds['boxes'][:, 0] - (preds['boxes'][:, 0] % 32), min=0, max=im_width)
+    preds['boxes'][:, 1] = torch.clamp(preds['boxes'][:, 1] - (preds['boxes'][:, 1] % 32), min=0, max=im_height)
+    preds['boxes'][:, 2] = torch.clamp(preds['boxes'][:, 2] + (32 - (preds['boxes'][:, 2] % 32)), min=0, max=im_width)
+    preds['boxes'][:, 3] = torch.clamp(preds['boxes'][:, 3] + (32 - (preds['boxes'][:, 3] % 32)), min=0, max=im_height)
 
     preds['labels'] = preds['labels'][keep]
     preds['masks'] = preds['masks'][keep].squeeze(dim=1)
