@@ -62,6 +62,12 @@ renderer = ObjCoordRenderer(objs, res_crop)
 # Infer the detection model on the image
 preds = infer_detector(detection_model, image)
 
+# visualize the detections
+plt.imshow(image.permute(1, 2, 0))
+for box in preds['boxes']:
+    plt.plot([box[0], box[2], box[2], box[0], box[0]], [box[1], box[1], box[3], box[3], box[1]], 'r')
+plt.show()
+
 # initialize opencv windows
 cols = 4
 window_names = 'img', 'mask_est', 'queries', 'keys', \
@@ -93,13 +99,13 @@ while True:
     img = (img * 255).astype(np.uint8) # Convert to uint8
     # Correct the camera matrix
     K_crop = cam_K
-    K_crop[0, 2] -= box[0] # cx
-    K_crop[1, 2] -= box[1] # cy
     old_width, old_height = box[2] - box[0], box[3] - box[1]
     K_crop[0, 0] *= 224 / old_width # fx
     K_crop[1, 1] *= 224 / old_height # fy
     K_crop[0, 2] *= 224 / old_width # cx
     K_crop[1, 2] *= 224 / old_height # cy
+    K_crop[0, 2] -= box[0] # cx
+    K_crop[1, 2] -= box[1] # cy
     obj_ = objs[obj_idx]
 
     print(f'i: {data_i}, obj_id: {obj_ids[obj_idx]}')
