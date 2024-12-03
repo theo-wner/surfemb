@@ -46,17 +46,18 @@ for i in range(len(preds['labels'])):
     box = preds['boxes'][i]
     # Update the camera matrix (Subtract the box coordinates)
     cam_crop = cam_K
-    #cam_crop[0, 2] -= box[0] # cx
-    #cam_crop[1, 2] -= box[1] # cy
+    cam_crop[0, 2] -= box[0] # cx
+    cam_crop[1, 2] -= box[1] # cy
+    # Crop the image
     image_crop = image[:, box[1]:box[3], box[0]:box[2]]
     # Scale image crop to 224x224
-    #image_crop = torch.nn.functional.interpolate(image_crop.unsqueeze(0), size=(224, 224), mode='bilinear', align_corners=False).squeeze(0)
+    image_crop = torch.nn.functional.interpolate(image_crop.unsqueeze(0), size=(224, 224), mode='bilinear', align_corners=False).squeeze(0)
     # Correct the camera matrix
-    #old_width, old_height = box[2] - box[0], box[3] - box[1]
-    #cam_crop[0, 0] *= 224 / old_width # fx
-    #cam_crop[1, 1] *= 224 / old_height # fy
-    #cam_crop[0, 2] *= 224 / old_width # cx
-    #cam_crop[1, 2] *= 224 / old_height # cy
+    old_width, old_height = box[2] - box[0], box[3] - box[1]
+    cam_crop[0, 0] *= 224 / old_width # fx
+    cam_crop[1, 1] *= 224 / old_height # fy
+    cam_crop[0, 2] *= 224 / old_width # cx
+    cam_crop[1, 2] *= 224 / old_height # cy
 
     obj_idx = preds['labels'][i].item()
 
@@ -108,3 +109,5 @@ for i in range(len(preds['labels'])):
     print(f'Target t:\n{target["R_t"][0]["t"]}')
     print(f'Estimated R:\n{R_est}')
     print(f'Estimated t:\n{t_est}')
+
+    
