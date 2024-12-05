@@ -13,13 +13,19 @@ import matplotlib.pyplot as plt
 import numpy as np
 import cv2
 import torch.utils.data
+import json
 
 # Create Dataset and get image
 dataset = BOPDataset('./data/bop/itodd', subset='train_pbr', split='test', test_ratio=0.1)
 image, target, cam_K = dataset[1]
+image = image.mean(dim=0, keepdim=True)
+greyscale = True
 
 # Visualize the data
-plt.imshow(image.permute(1, 2, 0))
+if greyscale:
+    plt.imshow(image.permute(1, 2, 0), cmap='gray')
+else:
+    plt.imshow(image.permute(1, 2, 0))
 for box in target['boxes']:
     plt.plot([box[0], box[2], box[2], box[0], box[0]], [box[1], box[1], box[3], box[3], box[1]], 'g')
 plt.show()
@@ -46,8 +52,11 @@ renderer = ObjCoordRenderer(objs, res_crop)
 # Infer the detection model on the image
 preds = infer_detector(detection_model, image)
 
-# visualize the detections
-plt.imshow(image.permute(1, 2, 0))
+# visualize the detections 
+if greyscale:
+    plt.imshow(image.permute(1, 2, 0), cmap='gray')
+else:
+    plt.imshow(image.permute(1, 2, 0))
 for box in preds['boxes']:
     plt.plot([box[0], box[2], box[2], box[0], box[0]], [box[1], box[1], box[3], box[3], box[1]], 'r')
 plt.show()
@@ -71,6 +80,7 @@ print("press 'q' to quit.")
 
 # Iterate over the Image crops
 data_i = 0
+results = []
 while True:
     print()
     print('------------ new input -------------')
@@ -82,14 +92,18 @@ while True:
     img = torch.nn.functional.interpolate(img.unsqueeze(0), size=(224, 224), mode='bilinear', align_corners=False).squeeze(0)
     img = img.permute(1, 2, 0).cpu().numpy()
     img = (img * 255).astype(np.uint8) # Convert to uint8
+
     # Correct the camera matrix --> apperently not needed
     K_crop = cam_K
-    #K_crop[0, 2] -= box[0] # cx
-    #K_crop[1, 2] -= box[1] # cy
-    #K_crop[0, 0] *= res_crop / old_width # fx
-    #K_crop[1, 1] *= res_crop / old_height # fy
-    #K_crop[0, 2] *= res_crop / old_width # cx
-    #K_crop[1, 2] *= res_crop / old_height # cy
+    
+    K_crop[0, 2] -= box[0] # cx
+    K_crop[1, 2] -= box[1] # cy
+    K_crop[0, 0] *= res_crop / old_width # fx
+    K_crop[1, 1] *= res_crop / old_height # fy
+    K_crop[0, 2] *= res_crop / old_width # cx
+    K_crop[1, 2] *= res_crop / old_height # cy
+    
+
     obj_ = objs[obj_idx]
 
     print(f'i: {data_i}, obj_id: {obj_ids[obj_idx]}')
@@ -115,7 +129,6 @@ while True:
 
     # visualize
     img_vis = img[..., ::-1].astype(np.float32) / 255
-    grey = cv2.cvtColor(img_vis, cv2.COLOR_BGR2GRAY)
 
     cv2.imshow('img', img_vis)
     cv2.imshow('mask_est', torch.sigmoid(mask_lgts).cpu().numpy())
@@ -125,7 +138,6 @@ while True:
     uv_pts_3d = []
     current_pose = None
     down_sample_scale = 3
-
 
     def mouse_cb(event, x, y, flags=0, *_):
         global last_mouse_pos
@@ -138,10 +150,13 @@ while True:
     def debug_pose_hypothesis(R, t, obj_pts=None, img_pts=None):
         global uv_pts_3d, current_pose
         current_pose = R, t
-        render = renderer.render(obj_idx, K_crop, R, t)
+        render = renderer.render(obj_idx, cam_K, R, t)
         render_mask = render[..., 3] == 1.
         pose_img = img_vis.copy()
-        pose_img[render_mask] = pose_img[render_mask] * 0.5 + render[..., :3][render_mask] * 0.25 + 0.25
+        if greyscale:
+            pose_img[render_mask] = pose_img[render_mask] * 0.5 + render[..., :1][render_mask] * 0.25 + 0.5
+        else:
+            pose_img[render_mask] = pose_img[render_mask] * 0.5 + render[..., :3][render_mask] * 0.25 + 0.25
 
         if obj_pts is not None:
             colors = np.eye(3)[::-1]
@@ -158,7 +173,7 @@ while True:
         pose_est.estimate_pose(
             mask_lgts=mask_lgts, query_img=query_img,
             obj_pts=verts, obj_normals=normals, obj_keys=keys_verts,
-            obj_diameter=obj_.diameter, K=K_crop, down_sample_scale=down_sample_scale,
+            obj_diameter=obj_.diameter, K=cam_K, down_sample_scale=down_sample_scale,
             visualize=True, poses=poses[None],
         )
 
@@ -169,7 +184,7 @@ while True:
             R, t, scores, mask_scores, coord_scores, dist_2d, size_mask, normals_mask = pose_est.estimate_pose(
                 mask_lgts=mask_lgts, query_img=query_img, down_sample_scale=down_sample_scale,
                 obj_pts=verts, obj_normals=normals, obj_keys=keys_verts,
-                obj_diameter=obj_.diameter, K=K_crop,
+                obj_diameter=obj_.diameter, K=cam_K,
             )
         if not len(scores):
             print('no pose')
@@ -187,7 +202,18 @@ while True:
         print()
         key = cv2.waitKey()
         if key == ord('q'):
+            # Save the results
+            with open('results.json', 'w') as f:
+                json.dump(results, f)
             quit()
+        elif key == ord('s'): # Save the results of the current crop
+            results.append({
+                'obj_id': obj_ids[obj_idx],
+                'K_crop': K_crop.tolist(),
+                'R': current_pose[0].tolist(),
+                't': current_pose[1].tolist(),
+            })
+            print('Current crop results saved')
         elif key == ord('a'):
             data_i = (data_i - 1) % len(preds['boxes'])
             break
@@ -206,7 +232,7 @@ while True:
                 with utils.timer('refinement'):
                     R, t, score_r = pose_refine.refine_pose(
                         R=current_pose[0], t=current_pose[1], query_img=query_img, keys_verts=keys_verts,
-                        obj_idx=obj_idx, obj_=obj_, K_crop=K_crop, model=model, renderer=renderer,
+                        obj_idx=obj_idx, obj_=obj_, K_crop=cam_K, model=model, renderer=renderer,
                     )
                     trace = np.trace(R @ current_pose[0].T)
                     angle = np.arccos(np.clip((trace - 1) / 2, -1, 1))
