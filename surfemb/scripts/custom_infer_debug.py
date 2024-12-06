@@ -21,6 +21,7 @@ image, target, cam_K = dataset[1]
 image = image.mean(dim=0, keepdim=True)
 greyscale = True
 
+'''
 # Visualize the data
 if greyscale:
     plt.imshow(image.permute(1, 2, 0), cmap='gray')
@@ -29,6 +30,7 @@ else:
 for box in target['boxes']:
     plt.plot([box[0], box[2], box[2], box[0], box[0]], [box[1], box[1], box[3], box[3], box[1]], 'g')
 plt.show()
+'''
 
 # Load the models
 detection_model = MaskRCNN.load_from_checkpoint(
@@ -52,6 +54,7 @@ renderer = ObjCoordRenderer(objs, res_crop)
 # Infer the detection model on the image
 preds = infer_detector(detection_model, image)
 
+'''
 # visualize the detections 
 if greyscale:
     plt.imshow(image.permute(1, 2, 0), cmap='gray')
@@ -60,6 +63,7 @@ else:
 for box in preds['boxes']:
     plt.plot([box[0], box[2], box[2], box[0], box[0]], [box[1], box[1], box[3], box[3], box[1]], 'r')
 plt.show()
+'''
 
 # initialize opencv windows
 cols = 4
@@ -94,8 +98,7 @@ while True:
     img = (img * 255).astype(np.uint8) # Convert to uint8
 
     # Correct the camera matrix --> apperently not needed
-    K_crop = cam_K
-    
+    K_crop = np.copy(cam_K)
     K_crop[0, 2] -= box[0] # cx
     K_crop[1, 2] -= box[1] # cy
     K_crop[0, 0] *= res_crop / old_width # fx
@@ -103,7 +106,6 @@ while True:
     K_crop[0, 2] *= res_crop / old_width # cx
     K_crop[1, 2] *= res_crop / old_height # cy
     
-
     obj_ = objs[obj_idx]
 
     print(f'i: {data_i}, obj_id: {obj_ids[obj_idx]}')
@@ -177,7 +179,6 @@ while True:
             visualize=True, poses=poses[None],
         )
 
-
     def estimate_pose():
         print()
         with utils.timer('pnp ransac'):
@@ -207,13 +208,16 @@ while True:
                 json.dump(results, f)
             quit()
         elif key == ord('s'): # Save the results of the current crop
+            # TODO: Correct the estimated pose so that it corresponds to the whole image and not just the crop
+
+            # Append the corrected pose to results
             results.append({
                 'obj_id': obj_ids[obj_idx],
                 'K_crop': K_crop.tolist(),
                 'R': current_pose[0].tolist(),
                 't': current_pose[1].tolist(),
             })
-            print('Current crop results saved')
+            print('Corrected pose results saved')
         elif key == ord('a'):
             data_i = (data_i - 1) % len(preds['boxes'])
             break

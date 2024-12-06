@@ -8,6 +8,7 @@ from PIL import Image
 import numpy as np
 import matplotlib.patches as patches
 import torch
+import math
 
 def get_model(num_classes):
     # Load a pre-trained Mask R-CNN model
@@ -130,32 +131,72 @@ def filter_boxes(preds, iou_threshold):
                             break
     preds['boxes'] = preds['boxes'][keep].int()
 
-    # Ensure that all the boxes are quadratic --> make them larger if necessary
+    # Ensure that all the boxes are quadratic, divisible by 32, and within the image bounds
     im_width, im_height = preds['masks'].size(3), preds['masks'].size(2)
+
     for i in range(len(preds['boxes'])):
-        box = preds['boxes'][i]
-        width = box[2] - box[0]
-        height = box[3] - box[1]
-        if width > height:
-            diff = width - height
-            box[1] = max(0, box[1] - diff // 2)
-            box[3] = min(im_height, box[3] + diff - diff // 2)
-        else:
-            diff = height - width
-            box[0] = max(0, box[0] - diff // 2)
-            box[2] = min(im_width, box[2] + diff - diff // 2)
-        preds['boxes'][i] = box
-        
-    # Pad the boxes to be divisible by 32 and within the image
-    preds['boxes'][:, 0] = torch.clamp(preds['boxes'][:, 0] - (preds['boxes'][:, 0] % 32), min=0, max=im_width)
-    preds['boxes'][:, 1] = torch.clamp(preds['boxes'][:, 1] - (preds['boxes'][:, 1] % 32), min=0, max=im_height)
-    preds['boxes'][:, 2] = torch.clamp(preds['boxes'][:, 2] + (32 - (preds['boxes'][:, 2] % 32)), min=0, max=im_width)
-    preds['boxes'][:, 3] = torch.clamp(preds['boxes'][:, 3] + (32 - (preds['boxes'][:, 3] % 32)), min=0, max=im_height)
+        x_min, y_min, x_max, y_max = preds['boxes'][i]
+        # Update the box
+        preds['boxes'][i] = torch.tensor(calculate_new_bounding_box(im_width, im_height, x_min, y_min, x_max, y_max))
 
     preds['labels'] = preds['labels'][keep]
     preds['masks'] = preds['masks'][keep].squeeze(dim=1)
     preds['scores'] = preds['scores'][keep]
     return preds
+
+def calculate_new_bounding_box(im_width, im_height, x_min, y_min, x_max, y_max):
+    """
+    Calculate a new square bounding box that:
+    - Fully contains the original bounding box
+    - Has sides divisible by 32
+    - Stays within the image boundaries
+
+    Parameters:
+    - im_width, im_height: Dimensions of the image
+    - x_min, y_min, x_max, y_max: Coordinates of the original bounding box
+
+    Returns:
+    - New bounding box coordinates: (x_min_new, y_min_new, x_max_new, y_max_new)
+    """
+    # Calculate the size of the original bounding box
+    width = x_max - x_min
+    height = y_max - y_min
+
+    # Determine the side length of the new square bounding box
+    max_dimension = max(width, height)
+    side_length = math.ceil(max_dimension / 32) * 32  # Round up to the nearest multiple of 32
+
+    # Calculate the center of the old bounding box
+    x_center = (x_min + x_max) / 2
+    y_center = (y_min + y_max) / 2
+
+    # Calculate the new bounding box coordinates
+    x_min_new = x_center - side_length / 2
+    x_max_new = x_center + side_length / 2
+    y_min_new = y_center - side_length / 2
+    y_max_new = y_center + side_length / 2
+
+    # Adjust the bounding box to ensure it is within image boundaries
+    if x_min_new < 0:
+        x_min_new = 0
+        x_max_new = side_length
+    if y_min_new < 0:
+        y_min_new = 0
+        y_max_new = side_length
+    if x_max_new > im_width:
+        x_max_new = im_width
+        x_min_new = im_width - side_length
+    if y_max_new > im_height:
+        y_max_new = im_height
+        y_min_new = im_height - side_length
+
+    # Ensure the new bounding box is valid within boundaries
+    x_min_new = max(0, x_min_new)
+    y_min_new = max(0, y_min_new)
+    x_max_new = min(im_width, x_max_new)
+    y_max_new = min(im_height, y_max_new)
+
+    return x_min_new, y_min_new, x_max_new, y_max_new
 
 def infer_detector(model, image):
     """
