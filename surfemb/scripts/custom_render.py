@@ -28,13 +28,18 @@ for result in results:
     mask = np.zeros((image.shape[1], image.shape[2]), dtype=np.uint8)
     obj_id = result['obj_id']
     K_crop = np.array(result['K_crop'])
+    box = result['box']
+    scale = result['scale']
 
-    # Convert from opencv convention to OpenGL
-    K_crop[0, 2] = image.shape[2] - K_crop[0, 2]
-    K_crop[1, 2] = image.shape[1] - K_crop[1, 2]
-    
     R = np.array(result['R'])
     t = np.array(result['t'])
+
+    obj_scale = objs[obj_id].scale
+    obj_offset = objs[obj_id].offset
+
+    # Correct t according to the box and the scale
+    #t[0] = t[0] + box[0] * scale
+    #t[1] = t[1] + box[1] * scale
     
     # Create Projection Matrix P
     pose = np.concatenate((R, t.reshape(3,1)), axis=1)
@@ -42,13 +47,12 @@ for result in results:
     
     scale = objs[obj_id].scale
     offset = objs[obj_id].offset
-    print(scale)
-    print(offset)
 
     # Project the object into the image
     for obj in objs:
         if obj.obj_id == obj_id:
             for vertex in obj.mesh.vertices:
+                #vertex = vertex * scale + offset
                 vertex = np.append(vertex, 1)
                 vertex = np.matmul(P, vertex)
                 vertex = vertex / vertex[2]

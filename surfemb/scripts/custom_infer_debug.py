@@ -20,6 +20,7 @@ dataset = BOPDataset('./data/bop/itodd', subset='train_pbr', split='test', test_
 image, target, cam_K = dataset[1]
 image = image.mean(dim=0, keepdim=True)
 greyscale = True
+print(cam_K)
 
 '''
 # Visualize the data
@@ -97,14 +98,22 @@ while True:
     img = img.permute(1, 2, 0).cpu().numpy()
     img = (img * 255).astype(np.uint8) # Convert to uint8
 
+    # Get scaling factor
+    scale_x = res_crop / old_width
+    scale_y = res_crop / old_height
+    assert scale_x == scale_y
+    scale = scale_x
+
     # Correct the camera matrix --> apperently not needed
     K_crop = np.copy(cam_K)
+    '''
     K_crop[0, 2] -= box[0] # cx
     K_crop[1, 2] -= box[1] # cy
     K_crop[0, 0] *= res_crop / old_width # fx
     K_crop[1, 1] *= res_crop / old_height # fy
     K_crop[0, 2] *= res_crop / old_width # cx
     K_crop[1, 2] *= res_crop / old_height # cy
+    '''
     
     obj_ = objs[obj_idx]
 
@@ -216,6 +225,8 @@ while True:
                 'K_crop': K_crop.tolist(),
                 'R': current_pose[0].tolist(),
                 't': current_pose[1].tolist(),
+                'box': box.tolist(),
+                'scale': scale
             })
             print('Corrected pose results saved')
         elif key == ord('a'):
