@@ -10,3 +10,4 @@ __pycache__
 /surfemb/custom_patch_extraction/tb_logs
 /surfemb/custom_patch_extraction/checkpoints
 /surfemb/custom_patch_extraction/terminal_log.txt
+*.png
