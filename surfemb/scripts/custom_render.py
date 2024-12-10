@@ -34,25 +34,20 @@ for result in results:
     R = np.array(result['R'])
     t = np.array(result['t'])
 
-    obj_scale = objs[obj_id].scale
-    obj_offset = objs[obj_id].offset
+    # Process the pose so that it refers to the whole image and not the crop
+    t /= scale
 
-    # Correct t according to the box and the scale
-    #t[0] = t[0] + box[0] * scale
-    #t[1] = t[1] + box[1] * scale
-    
     # Create Projection Matrix P
     pose = np.concatenate((R, t.reshape(3,1)), axis=1)
     P = K_crop @ pose
-    
-    scale = objs[obj_id].scale
-    offset = objs[obj_id].offset
 
     # Project the object into the image
+    obj_scale = objs[obj_id].scale
+    obj_offset = objs[obj_id].offset
+    
     for obj in objs:
         if obj.obj_id == obj_id:
             for vertex in obj.mesh.vertices:
-                #vertex = vertex * scale + offset
                 vertex = np.append(vertex, 1)
                 vertex = np.matmul(P, vertex)
                 vertex = vertex / vertex[2]
