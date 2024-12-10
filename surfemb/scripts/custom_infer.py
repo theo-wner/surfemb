@@ -16,16 +16,19 @@ import numpy as np
 # Create Dataset and get image
 dataset = BOPDataset('./data/bop/itodd', subset='train_pbr', split='test', test_ratio=0.1)
 image, target, cam_K = dataset[1]
-
-# Convert to grayscale
 if config.GRAYSCALE:
     image = image.mean(dim=0, keepdim=True)
 
+'''
 # Visualize the data
-plt.imshow(image.permute(1, 2, 0))
+if config.GRAYSCALE:
+    plt.imshow(image.permute(1, 2, 0), cmap='gray')
+else:
+    plt.imshow(image.permute(1, 2, 0))
 for box in target['boxes']:
     plt.plot([box[0], box[2], box[2], box[0], box[0]], [box[1], box[1], box[3], box[3], box[1]], 'g')
 plt.show()
+'''
 
 # Load the models
 detection_model = MaskRCNN.load_from_checkpoint(
@@ -50,6 +53,17 @@ renderer = ObjCoordRenderer(objs, res_crop)
 # Infer the detection model on the image
 preds = infer_detector(detection_model, image)
 
+'''
+# Visualize the detections
+if config.GRAYSCALE:
+    plt.imshow(image.permute(1, 2, 0), cmap='gray')
+else:
+    plt.imshow(image.permute(1, 2, 0))
+for box in preds['boxes']:
+    plt.plot([box[0], box[2], box[2], box[0], box[0]], [box[1], box[1], box[3], box[3], box[1]], 'r')
+plt.show()
+'''
+
 # Iterate over the Image crops
 for i in range(len(preds['labels'])):
     # Take out the first image crop
@@ -57,10 +71,12 @@ for i in range(len(preds['labels'])):
     obj_idx = preds['labels'][i].item() - 1 # 0-indexed
     # Crop the image
     image_crop = image[:, box[1]:box[3], box[0]:box[2]]
+    old_width, old_height = image_crop.shape[1], image_crop.shape[2]
     # Scale image crop to 224x224
     image_crop = torch.nn.functional.interpolate(image_crop.unsqueeze(0), size=(res_crop, res_crop), mode='bilinear', align_corners=False).squeeze(0)
+    image_crop = image_crop.permute(1, 2, 0).cpu().numpy()
+    image_crop = (image_crop * 255).astype(np.uint8) # Convert to uint8
     # Get scale factor
-    old_width, old_height = image_crop.shape[1], image_crop.shape[2]
     scale_x = res_crop / old_width
     scale_y = res_crop / old_height
     assert scale_x == scale_y
@@ -68,10 +84,15 @@ for i in range(len(preds['labels'])):
     # Correct the camera matrix --> apperently not needed
     K_crop = np.copy(cam_K)
 
+    '''
     # Visualize the data
-    plt.imshow(image_crop.permute(1, 2, 0))
+    if config.GRAYSCALE:
+        plt.imshow(image_crop, cmap='gray')
+    else:
+        plt.imshow(image_crop)
     plt.show()
-
+    '''
+    
     # Infer the embedding model on the image crop
     mask_lgts, query_img = embedding_model.infer_cnn(image_crop, obj_idx, rotation_ensemble=False)
 
