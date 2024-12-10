@@ -20,7 +20,6 @@ dataset = BOPDataset('./data/bop/itodd', subset='train_pbr', split='test', test_
 image, target, cam_K = dataset[1]
 image = image.mean(dim=0, keepdim=True)
 greyscale = True
-print(cam_K)
 
 '''
 # Visualize the data
@@ -94,7 +93,7 @@ while True:
     box = preds['boxes'][data_i]
     img = image[:, box[1]:box[3], box[0]:box[2]]
     old_width, old_height = img.shape[1], img.shape[2]
-    img = torch.nn.functional.interpolate(img.unsqueeze(0), size=(224, 224), mode='bilinear', align_corners=False).squeeze(0)
+    img = torch.nn.functional.interpolate(img.unsqueeze(0), size=(res_crop, res_crop), mode='bilinear', align_corners=False).squeeze(0)
     img = img.permute(1, 2, 0).cpu().numpy()
     img = (img * 255).astype(np.uint8) # Convert to uint8
 
@@ -106,14 +105,6 @@ while True:
 
     # Correct the camera matrix --> apperently not needed
     K_crop = np.copy(cam_K)
-    '''
-    K_crop[0, 2] -= box[0] # cx
-    K_crop[1, 2] -= box[1] # cy
-    K_crop[0, 0] *= res_crop / old_width # fx
-    K_crop[1, 1] *= res_crop / old_height # fy
-    K_crop[0, 2] *= res_crop / old_width # cx
-    K_crop[1, 2] *= res_crop / old_height # cy
-    '''
     
     obj_ = objs[obj_idx]
 

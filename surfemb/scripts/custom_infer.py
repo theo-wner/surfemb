@@ -1,6 +1,5 @@
 from ..custom_patch_extraction.dataset import BOPDataset
 from ..custom_patch_extraction.model import MaskRCNN
-from ..custom_patch_extraction import config
 from ..custom_patch_extraction.utils import infer_detector, visualize_data
 from ..surface_embedding import SurfaceEmbeddingModel
 from ..data.renderer import ObjCoordRenderer
@@ -8,6 +7,7 @@ from ..data.obj import load_objs
 from ..pose_est import estimate_pose
 from ..pose_refine import refine_pose
 from .. import utils
+from . import config
 import torch
 from pathlib import Path
 import matplotlib.pyplot as plt
@@ -16,6 +16,10 @@ import numpy as np
 # Create Dataset and get image
 dataset = BOPDataset('./data/bop/itodd', subset='train_pbr', split='test', test_ratio=0.1)
 image, target, cam_K = dataset[1]
+
+# Convert to grayscale
+if config.GRAYSCALE:
+    image = image.mean(dim=0, keepdim=True)
 
 # Visualize the data
 plt.imshow(image.permute(1, 2, 0))
@@ -50,21 +54,19 @@ preds = infer_detector(detection_model, image)
 for i in range(len(preds['labels'])):
     # Take out the first image crop
     box = preds['boxes'][i]
-    obj_idx = preds['labels'][i].item()
+    obj_idx = preds['labels'][i].item() - 1 # 0-indexed
     # Crop the image
     image_crop = image[:, box[1]:box[3], box[0]:box[2]]
     # Scale image crop to 224x224
-    image_crop = torch.nn.functional.interpolate(image_crop.unsqueeze(0), size=(224, 224), mode='bilinear', align_corners=False).squeeze(0)
-    # Correct the cx and cy offsets
-    cam_crop = cam_K
-    cam_crop[0, 2] -= box[0] # cx
-    cam_crop[1, 2] -= box[1] # cy
-    # Correct the camera matrix for the scaling
-    old_width, old_height = box[2] - box[0], box[3] - box[1]
-    cam_crop[0, 0] *= 224 / old_width # fx
-    cam_crop[1, 1] *= 224 / old_height # fy
-    cam_crop[0, 2] *= 224 / old_width # cx
-    cam_crop[1, 2] *= 224 / old_height # cy
+    image_crop = torch.nn.functional.interpolate(image_crop.unsqueeze(0), size=(res_crop, res_crop), mode='bilinear', align_corners=False).squeeze(0)
+    # Get scale factor
+    old_width, old_height = image_crop.shape[1], image_crop.shape[2]
+    scale_x = res_crop / old_width
+    scale_y = res_crop / old_height
+    assert scale_x == scale_y
+    scale = scale_x
+    # Correct the camera matrix --> apperently not needed
+    K_crop = np.copy(cam_K)
 
     # Visualize the data
     plt.imshow(image_crop.permute(1, 2, 0))
@@ -86,7 +88,7 @@ for i in range(len(preds['labels'])):
     R_est, t_est, scores, *_ = estimate_pose(
         mask_lgts=mask_lgts, query_img=query_img,
         obj_pts=verts, obj_normals=surface_sample_normals[obj_idx], obj_keys=obj_keys,
-        obj_diameter=obj.diameter, K=cam_crop, max_pool=False, visualize=False,
+        obj_diameter=obj.diameter, K=K_crop, max_pool=False, visualize=False,
     )
     success = len(scores) > 0
     if success:
@@ -100,7 +102,7 @@ for i in range(len(preds['labels'])):
     # Refine the pose
     if success:
         R_est_r, t_est_r, score_r = refine_pose(
-            R=R_est, t=t_est, query_img=query_img, K_crop=cam_crop,
+            R=R_est, t=t_est, query_img=query_img, K_crop=K_crop,
             renderer=renderer, obj_idx=obj_idx, obj_=obj, model=embedding_model, keys_verts=obj_keys,
         )
     else:
