@@ -36,14 +36,12 @@ for result in results:
 
     # Process the pose so that it refers to the whole image and not the crop
     t /= scale
+    t[0] += 100
+    t[1] += 100
 
     # Create Projection Matrix P
     pose = np.concatenate((R, t.reshape(3,1)), axis=1)
     P = K_crop @ pose
-
-    # Project the object into the image
-    obj_scale = objs[obj_id].scale
-    obj_offset = objs[obj_id].offset
     
     for obj in objs:
         if obj.obj_id == obj_id:
