@@ -49,7 +49,7 @@ class SurfaceEmbeddingModel(pl.LightningModule):
         # query model
         self.cnn = ResNetUNet(
             n_class=(emb_dim + 1) if separate_decoders else n_objs * (emb_dim + 1),
-            n_decoders=n_objs if separate_decoders else 1, seed=self.seed
+            n_decoders=n_objs if separate_decoders else 1
         )
         # key models
         mlp_class = mlp_class_dict[mlp_name]

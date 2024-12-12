@@ -62,7 +62,7 @@ def train_member(seed):
     log_dir.mkdir(parents=True, exist_ok=True)
     log_dir = 'data/logs'   
     run = wandb.init(project='surfemb', dir=log_dir)
-    run.name = run.id
+    run.name = f'{run.id}-seed-{seed}'
 
     logger = pl.loggers.WandbLogger(experiment=run)
 

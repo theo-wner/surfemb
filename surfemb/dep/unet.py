@@ -14,11 +14,8 @@ def convrelu(in_channels, out_channels, kernel, padding):
 
 
 class ResNetUNet(nn.Module):
-    def __init__(self, n_class, feat_preultimate=64, n_decoders=1, seed=42):
+    def __init__(self, n_class, feat_preultimate=64, n_decoders=1):
         super().__init__()
-
-        # seed
-        torch.manual_seed(seed)
 
         #  shared encoder
         self.base_model = torchvision.models.resnet18(pretrained=False)
