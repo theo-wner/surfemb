@@ -25,7 +25,7 @@ mlp_class_dict = dict(
 class SurfaceEmbeddingModel(pl.LightningModule):
     def __init__(self, n_objs: int, emb_dim=12, n_pos=1024, n_neg=1024, lr_cnn=3e-4, lr_mlp=3e-5,
                  mlp_name='siren', mlp_hidden_features=256, mlp_hidden_layers=2,
-                 key_noise=1e-3, warmup_steps=2000, separate_decoders=True,
+                 key_noise=1e-3, warmup_steps=2000, separate_decoders=True, seed=42,
                  **kwargs):
         """
         :param emb_dim: number of embedding dimensions
@@ -35,6 +35,7 @@ class SurfaceEmbeddingModel(pl.LightningModule):
         super().__init__()
         self.save_hyperparameters()
 
+        self.seed = seed
         self.n_objs, self.emb_dim = n_objs, emb_dim
         self.n_pos, self.n_neg = n_pos, n_neg
         self.lr_cnn, self.lr_mlp = lr_cnn, lr_mlp
@@ -42,10 +43,13 @@ class SurfaceEmbeddingModel(pl.LightningModule):
         self.key_noise = key_noise
         self.separate_decoders = separate_decoders
 
+        # set seed
+        pl.seed_everything(self.seed)
+
         # query model
         self.cnn = ResNetUNet(
             n_class=(emb_dim + 1) if separate_decoders else n_objs * (emb_dim + 1),
-            n_decoders=n_objs if separate_decoders else 1,
+            n_decoders=n_objs if separate_decoders else 1, seed=self.seed
         )
         # key models
         mlp_class = mlp_class_dict[mlp_name]

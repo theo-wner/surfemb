@@ -7,7 +7,7 @@ from ..data.obj import load_objs
 from ..pose_est import estimate_pose
 from ..pose_refine import refine_pose
 from .. import utils
-from . import config
+from . import params_config
 import torch
 from pathlib import Path
 import matplotlib.pyplot as plt
@@ -16,7 +16,7 @@ import numpy as np
 # Create Dataset and get image
 dataset = BOPDataset('./data/bop/itodd', subset='train_pbr', split='test', test_ratio=0.1)
 image, target, cam_K = dataset[1]
-if config.GRAYSCALE:
+if params_config.GRAYSCALE:
     image = image.mean(dim=0, keepdim=True)
 
 '''
@@ -34,7 +34,7 @@ plt.show()
 detection_model = MaskRCNN.load_from_checkpoint(
     './surfemb/custom_patch_extraction/checkpoints/best-checkpoint.ckpt',
     num_classes=dataset.num_classes,
-    learning_rate=config.LEARNING_RATE
+    learning_rate=params_config.LEARNING_RATE
 )
 
 embedding_model = SurfaceEmbeddingModel.load_from_checkpoint(

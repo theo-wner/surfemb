@@ -7,7 +7,7 @@ from ..data.obj import load_objs
 from .. import utils
 from .. import pose_est
 from .. import pose_refine
-from . import config
+from . import params_config
 import torch
 from pathlib import Path
 import matplotlib.pyplot as plt
@@ -19,7 +19,7 @@ import json
 # Create Dataset and get image
 dataset = BOPDataset('./data/bop/itodd', subset='train_pbr', split='test', test_ratio=0.1)
 image, target, cam_K = dataset[1]
-if config.GRAYSCALE:
+if params_config.GRAYSCALE:
     image = image.mean(dim=0, keepdim=True)
 
 '''
@@ -156,7 +156,7 @@ while True:
         render = renderer.render(obj_idx, cam_K, R, t)
         render_mask = render[..., 3] == 1.
         pose_img = img_vis.copy()
-        if config.GRAYSCALE:
+        if params_config.GRAYSCALE:
             pose_img[render_mask] = pose_img[render_mask] * 0.5 + render[..., :1][render_mask] * 0.25 + 0.5
         else:
             pose_img[render_mask] = pose_img[render_mask] * 0.5 + render[..., :3][render_mask] * 0.25 + 0.25
