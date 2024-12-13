@@ -21,43 +21,39 @@ with open('results.json', 'r') as f:
 
 # Load the objects
 objs, obj_ids = load_objs(Path('./data/bop/itodd/models'))
+surface_samples, surface_sample_normals = utils.load_surface_samples('itodd', obj_ids)
 
-# Process the results
 for result in results:
-    # Create empty image to project the object into
-    mask = np.zeros((image.shape[1], image.shape[2]), dtype=np.uint8)
     obj_id = result['obj_id']
     K_crop = np.array(result['K_crop'])
-    box = result['box']
-    scale = result['scale']
-
     R = np.array(result['R'])
-    t = np.array(result['t'])
+    t = np.array(result['t']).reshape(3, 1)
 
-    # Process the pose so that it refers to the whole image and not the crop
-    t /= scale
-    t[0] += 100
-    t[1] += 100
+    # Create the pose matrix belonging to the cropped image
+    pose_crop = np.concatenate((R, t), axis=1)
 
-    # Create Projection Matrix P
-    pose = np.concatenate((R, t.reshape(3,1)), axis=1)
-    P = K_crop @ pose
-    
+    # Create the pose matrix belonging to the original image
+    # K_crop * (R|t)_crop != K_cam * (R|t)_cam <=> (R|t)_cam = inv(K_cam) * K_crop * (R|t)_crop
+    pose = np.linalg.inv(cam_K) @ K_crop @ pose_crop
+
+    # Use the original camera matrix for projection
+    P = cam_K @ pose
+
     for obj in objs:
         if obj.obj_id == obj_id:
-            for vertex in obj.mesh.vertices:
-                vertex = np.append(vertex, 1)
-                vertex = np.matmul(P, vertex)
-                vertex = vertex / vertex[2]
-                vertex = vertex[:2]
-                vertex = vertex.astype(int)
-                if vertex[0] >= 0 and vertex[0] < mask.shape[1] and vertex[1] >= 0 and vertex[1] < mask.shape[0]:
-                    mask[vertex[1], vertex[0]] = 255
+            for surface_sample in surface_samples[obj_id - 1]:
+                # Project the surface sample
+                surface_sample = np.concatenate((surface_sample, [1]))
+                projected = P @ surface_sample
+                projected = projected / projected[2]
+                x, y = int(projected[0]), int(projected[1])
 
+                # Ensure the projected point is within image bounds
+                if 0 <= y < image.shape[1] and 0 <= x < image.shape[2]:
+                    # Scale each channel in the original image
+                    image[:, y, x] = image[:, y, x] * 1.1
 
-    # Save the mask
-    cv2.imwrite(f'mask_{obj_id}.png', mask)
-    print(f'Mask saved for object {obj_id}')
-
-
-
+    # Save the updated image in RGB format
+    rgb = image.permute(1, 2, 0).numpy() * 255
+    rgb = cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB)
+    cv2.imwrite('render.png', rgb)

@@ -90,6 +90,7 @@ while True:
     print()
     print('------------ new input -------------')
     # Take out an image crop
+    print(preds['scores'][data_i])
     obj_idx = preds['labels'][data_i].item() - 1 # surface embedding model uses 0-based indexing
     box = preds['boxes'][data_i]
     img = image[:, box[1]:box[3], box[0]:box[2]]
@@ -104,9 +105,13 @@ while True:
     assert scale_x == scale_y
     scale = scale_x
 
-    # Correct the camera matrix --> apperently not needed
+    # Correct the camera matrix for the crop
     K_crop = np.copy(cam_K)
-    
+    K_crop[0, 0] /= scale # fx
+    K_crop[1, 1] /= scale # fy
+    K_crop[0, 2] = K_crop[0, 2] / scale + box[0] # cx
+    K_crop[1, 2] = K_crop[1, 2] / scale + box[1] # cy
+
     obj_ = objs[obj_idx]
 
     print(f'i: {data_i}, obj_id: {obj_ids[obj_idx]}')
@@ -217,10 +222,8 @@ while True:
                 'K_crop': K_crop.tolist(),
                 'R': current_pose[0].tolist(),
                 't': current_pose[1].tolist(),
-                'box': box.tolist(),
-                'scale': scale
             })
-            print('Corrected pose results saved')
+            print('Pose results saved')
         elif key == ord('a'):
             data_i = (data_i - 1) % len(preds['boxes'])
             break

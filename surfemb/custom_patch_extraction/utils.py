@@ -117,6 +117,9 @@ def compute_iou(box1, box2):
     return inter_area / union_area
 
 def filter_boxes(preds, iou_threshold):
+    """
+    Filter overlapping boxes in the predictions using the IoU threshold.
+    """
     keep = torch.ones(len(preds['boxes']), dtype=torch.bool)
     for i in range(len(preds['boxes'])):
         if keep[i]:
@@ -198,6 +201,7 @@ def calculate_new_bounding_box(im_width, im_height, x_min, y_min, x_max, y_max):
 
     return x_min_new, y_min_new, x_max_new, y_max_new
 
+# Usage in the infer_detector function
 def infer_detector(model, image):
     """
     Infer the model on the given image.
@@ -206,10 +210,16 @@ def infer_detector(model, image):
         image: The image to infer on.
     Both the model and the image should be on the same device.
     """ 
-    model.eval() # Set the model to evaluation mode
-    image = image.unsqueeze(0) # Add a batch dimension
-    with torch.no_grad(): # Disable gradient computation
-        preds = model(image)[0] # Make predictions, 0 because batch size is 1
-    iou_threshold = 0.2 # Set the IoU threshold for filtering overlapping boxes
-    preds = filter_boxes(preds, iou_threshold) # Filter overlapping boxes
+    model.eval()  # Set the model to evaluation mode
+    image = image.unsqueeze(0)  # Add a batch dimension
+    with torch.no_grad():  # Disable gradient computation
+        preds = model(image)[0]  # Make predictions, 0 because batch size is 1
+    iou_threshold = 0.2  # Set the IoU threshold for filtering overlapping boxes
+    preds = filter_boxes(preds, iou_threshold)  # Filter overlapping boxes
+    
+    # Delete all the predictions with a score below 0.9
+    keep = preds['scores'] > 0.9
+    for key in preds.keys():
+        preds[key] = preds[key][keep]
+    
     return preds
