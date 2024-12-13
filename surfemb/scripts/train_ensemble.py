@@ -61,8 +61,12 @@ def train_member(seed):
     log_dir = Path('data/logs')
     log_dir.mkdir(parents=True, exist_ok=True)
     log_dir = 'data/logs'   
-    run = wandb.init(project='surfemb', dir=log_dir)
-    run.name = f'{run.id}-seed-{seed}'
+    run = wandb.init(
+        project='surfemb',
+        dir=log_dir,
+        name=f'{wandb.util.generate_id()}-seed-{seed}',  # Unique name for each run
+        reinit=True  # Important for independent runs
+    )
 
     logger = pl.loggers.WandbLogger(experiment=run)
 
@@ -88,5 +92,5 @@ def train_member(seed):
 
 if __name__ == '__main__':
     # Train 10 Ensemble members
-    for seed in range(10):
+    for seed in range(1, 10):
         train_member(seed)
