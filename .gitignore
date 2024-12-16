@@ -3,6 +3,7 @@
 /data
 /detection_results
 /sandbox
+/results
 __pycache__
 *.zip
 /surfemb/custom_patch_extraction/figures

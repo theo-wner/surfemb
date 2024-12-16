@@ -9,6 +9,7 @@ import numpy as np
 import matplotlib.patches as patches
 import torch
 import math
+from ..scripts import params_config
 
 def get_model(num_classes):
     # Load a pre-trained Mask R-CNN model
@@ -211,7 +212,7 @@ def infer_detector(model, image):
     Both the model and the image should be on the same device.
     """ 
     model.eval()  # Set the model to evaluation mode
-    image = image.unsqueeze(0)  # Add a batch dimension
+    image = image.unsqueeze(0).to(params_config.DEVICE)  # Add a batch dimension
     with torch.no_grad():  # Disable gradient computation
         preds = model(image)[0]  # Make predictions, 0 because batch size is 1
     iou_threshold = 0.2  # Set the IoU threshold for filtering overlapping boxes
