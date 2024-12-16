@@ -19,6 +19,7 @@ import json
 # Create Dataset and get image
 dataset = BOPDataset('./data/bop/itodd', subset='train_pbr', split='test', test_ratio=0.1)
 image, target, cam_K = dataset[1]
+image_name = 'image_1'
 if params_config.GRAYSCALE:
     image = image.mean(dim=0, keepdim=True)
 
@@ -85,12 +86,11 @@ print("press 'q' to quit.")
 
 # Iterate over the Image crops
 data_i = 0
-results = []
+results = {'cam_K' : cam_K.tolist(), 'objects' : []}
 while True:
     print()
     print('------------ new input -------------')
     # Take out an image crop
-    print(preds['scores'][data_i])
     obj_idx = preds['labels'][data_i].item() - 1 # surface embedding model uses 0-based indexing
     box = preds['boxes'][data_i]
     img = image[:, box[1]:box[3], box[0]:box[2]]
@@ -210,20 +210,27 @@ while True:
         key = cv2.waitKey()
         if key == ord('q'):
             # Save the results
-            with open('results.json', 'w') as f:
+            with open(f'./results/{image_name}_results.json', 'w') as f:
                 json.dump(results, f)
             quit()
-        elif key == ord('s'): # Save the results of the current crop
-            # TODO: Correct the estimated pose so that it corresponds to the whole image and not just the crop
-
+        elif key == ord('s'): # Save, first adjust pose to match the whole image and not the crop
+            # Create the pose matrix belonging to the cropped image
+            R_crop = current_pose[0]
+            t_crop = current_pose[1]
+            pose_crop = np.concatenate((R_crop, t_crop), axis=1)
+            print(pose_crop)
+            # Create the pose matrix belonging to the original image
+            # K_crop * (R|t)_crop != K_cam * (R|t)_cam <=> (R|t)_cam = inv(K_cam) * K_crop * (R|t)_crop
+            pose = np.linalg.inv(cam_K) @ K_crop @ pose_crop
+            R = pose[:, :3]
+            t = pose[:, 3].reshape(3, 1)
             # Append the corrected pose to results
-            results.append({
+            results['objects'].append({
                 'obj_id': obj_ids[obj_idx],
-                'K_crop': K_crop.tolist(),
-                'R': current_pose[0].tolist(),
-                't': current_pose[1].tolist(),
+                'R': R.tolist(),
+                't': t.tolist(),
             })
-            print('Pose results saved')
+            print('Adjusted pose results saved')
         elif key == ord('a'):
             data_i = (data_i - 1) % len(preds['boxes'])
             break

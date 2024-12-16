@@ -8,38 +8,33 @@ from ..pose_est import estimate_pose
 from ..pose_refine import refine_pose
 from .. import utils
 from . import params_config
+from . import custom_render
 import torch
 from pathlib import Path
-import matplotlib.pyplot as plt
+from tqdm import tqdm
 import numpy as np
+import json
+import cv2
 
 # Create Dataset and get image
 dataset = BOPDataset('./data/bop/itodd', subset='train_pbr', split='test', test_ratio=0.1)
 image, target, cam_K = dataset[1]
+render = image.permute(1, 2, 0).numpy() * 255
+render = cv2.cvtColor(render, cv2.COLOR_BGR2RGB)
+image_name = 'image_1'
 if params_config.GRAYSCALE:
     image = image.mean(dim=0, keepdim=True)
-
-'''
-# Visualize the data
-if config.GRAYSCALE:
-    plt.imshow(image.permute(1, 2, 0), cmap='gray')
-else:
-    plt.imshow(image.permute(1, 2, 0))
-for box in target['boxes']:
-    plt.plot([box[0], box[2], box[2], box[0], box[0]], [box[1], box[1], box[3], box[3], box[1]], 'g')
-plt.show()
-'''
 
 # Load the models
 detection_model = MaskRCNN.load_from_checkpoint(
     './surfemb/custom_patch_extraction/checkpoints/best-checkpoint.ckpt',
     num_classes=dataset.num_classes,
     learning_rate=params_config.LEARNING_RATE
-)
+).to(params_config.DEVICE)
 
 embedding_model = SurfaceEmbeddingModel.load_from_checkpoint(
     './data/models/itodd-3qnq15p6.compact.ckpt'
-).eval()
+).eval().to(params_config.DEVICE)
 embedding_model.freeze()
 
 # Get the objects and surface samples
@@ -53,19 +48,11 @@ renderer = ObjCoordRenderer(objs, res_crop)
 # Infer the detection model on the image
 preds = infer_detector(detection_model, image)
 
-'''
-# Visualize the detections
-if config.GRAYSCALE:
-    plt.imshow(image.permute(1, 2, 0), cmap='gray')
-else:
-    plt.imshow(image.permute(1, 2, 0))
-for box in preds['boxes']:
-    plt.plot([box[0], box[2], box[2], box[0], box[0]], [box[1], box[1], box[3], box[3], box[1]], 'r')
-plt.show()
-'''
+# Create results-file
+results = {'cam_K' : cam_K.tolist(), 'objects' : []}
 
 # Iterate over the Image crops
-for i in range(len(preds['labels'])):
+for i in tqdm(range(len(preds['labels']))):
     # Take out the first image crop
     box = preds['boxes'][i]
     obj_idx = preds['labels'][i].item() - 1 # 0-indexed
@@ -81,17 +68,12 @@ for i in range(len(preds['labels'])):
     scale_y = res_crop / old_height
     assert scale_x == scale_y
     scale = scale_x
-    # Correct the camera matrix --> apperently not needed
+    # Correct the camera matrix
     K_crop = np.copy(cam_K)
-
-    '''
-    # Visualize the data
-    if config.GRAYSCALE:
-        plt.imshow(image_crop, cmap='gray')
-    else:
-        plt.imshow(image_crop)
-    plt.show()
-    '''
+    K_crop[0, 0] /= scale # fx
+    K_crop[1, 1] /= scale # fy
+    K_crop[0, 2] = K_crop[0, 2] / scale + box[0] # cx
+    K_crop[1, 2] = K_crop[1, 2] / scale + box[1] # cy
     
     # Infer the embedding model on the image crop
     mask_lgts, query_img = embedding_model.infer_cnn(image_crop, obj_idx, rotation_ensemble=False)
@@ -102,14 +84,14 @@ for i in range(len(preds['labels'])):
     verts_norm = (verts - obj.offset) / obj.scale
 
     # Infer the MLP on the surface samples
-    obj_keys = embedding_model.infer_mlp(torch.from_numpy(verts_norm).float(), obj_idx)
-    verts = torch.from_numpy(verts).float()
+    obj_keys = embedding_model.infer_mlp(torch.from_numpy(verts_norm).float().to(params_config.DEVICE), obj_idx)
+    verts = torch.from_numpy(verts).float().to(params_config.DEVICE)
 
     # Estimate the pose
     R_est, t_est, scores, *_ = estimate_pose(
         mask_lgts=mask_lgts, query_img=query_img,
         obj_pts=verts, obj_normals=surface_sample_normals[obj_idx], obj_keys=obj_keys,
-        obj_diameter=obj.diameter, K=K_crop, max_pool=False, visualize=False,
+        obj_diameter=obj.diameter, K=cam_K, max_pool=False, visualize=False,
     )
     success = len(scores) > 0
     if success:
@@ -123,16 +105,29 @@ for i in range(len(preds['labels'])):
     # Refine the pose
     if success:
         R_est_r, t_est_r, score_r = refine_pose(
-            R=R_est, t=t_est, query_img=query_img, K_crop=K_crop,
+            R=R_est, t=t_est, query_img=query_img, K_crop=cam_K,
             renderer=renderer, obj_idx=obj_idx, obj_=obj, model=embedding_model, keys_verts=obj_keys,
         )
     else:
         R_est_r, t_est_r = R_est, t_est
 
-    # Print the results
-    print(f'Target R:\n{target["R_t"][0]["R"]}')
-    print(f'Target t:\n{target["R_t"][0]["t"]}')
-    print(f'Estimated R:\n{R_est}')
-    print(f'Estimated t:\n{t_est}')
+    # Adjust the pose to match the image and not the crop
+    pose_crop = np.concatenate((R_est_r, t_est_r), axis=1)
+    # Create the pose matrix belonging to the original image
+    # K_crop * (R|t)_crop != K_cam * (R|t)_cam <=> (R|t)_cam = inv(K_cam) * K_crop * (R|t)_crop
+    pose = np.linalg.inv(cam_K) @ K_crop @ pose_crop
+    R = pose[:, :3]
+    t = pose[:, 3].reshape(3, 1)
+    # Render the image
+    render = custom_render.render_R_t(render, surface_samples, cam_K, obj_idx, R, t)
+    cv2.imwrite('./results/image_1_render.png', render)
+    # Append the corrected pose to results
+    results['objects'].append({
+        'obj_id': obj_ids[obj_idx],
+        'R': R.tolist(),
+        't': t.tolist(),
+    })
 
-    
+with open(f'./results/{image_name}_results.json', 'w') as f:
+    json.dump(results, f)
+
