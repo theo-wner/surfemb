@@ -1,4 +1,4 @@
-from ..custom_patch_extraction.dataset import BOPDataset
+from ..patch_extraction.dataset import BOPDataset
 from ..data.obj import load_objs
 from .. import utils
 from pathlib import Path

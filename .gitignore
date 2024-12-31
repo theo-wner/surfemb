@@ -6,9 +6,9 @@
 /results
 __pycache__
 *.zip
-/surfemb/custom_patch_extraction/figures
-/surfemb/custom_patch_extraction/maskrcnn
-/surfemb/custom_patch_extraction/tb_logs
-/surfemb/custom_patch_extraction/checkpoints
-/surfemb/custom_patch_extraction/terminal_log.txt
+/surfemb/patch_extraction/figures
+/surfemb/patch_extraction/maskrcnn
+/surfemb/patch_extraction/tb_logs
+/surfemb/patch_extraction/checkpoints
+/surfemb/patch_extraction/terminal_log.txt
 *.png
