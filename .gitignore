@@ -9,6 +9,6 @@ __pycache__
 /surfemb/patch_extraction/figures
 /surfemb/patch_extraction/maskrcnn
 /surfemb/patch_extraction/tb_logs
-/surfemb/pathc_extraction/checkpoints
+/surfemb/patch_extraction/checkpoints
 /surfemb/patch_extraction/terminal_log.txt
 *.png
