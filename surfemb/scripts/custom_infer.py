@@ -18,7 +18,7 @@ import cv2
 
 # Create Dataset and get image
 dataset = BOPDataset('./data/bop/itodd', subset='train_pbr', split='test', test_ratio=0.1)
-image, target, cam_K = dataset[1]
+image, target, cam_K = dataset[2]
 render = image.permute(1, 2, 0).numpy() * 255
 render = cv2.cvtColor(render, cv2.COLOR_BGR2RGB)
 image_name = 'test_image'
