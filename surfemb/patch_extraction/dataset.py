@@ -1,6 +1,6 @@
 """ Contains the Datasets TLESS and ITODD. """
 
-from .utils import visualize_data
+from .utils import visualize_detections
 import os
 import json
 import torch
@@ -127,14 +127,14 @@ class BOPDataset(Dataset):
         return tuple(zip(*batch))
 
 if __name__ == '__main__':
-    itodd_train = BOPDataset('../data/bop/itodd', subset='train_pbr', split='train', test_ratio=0.1)
-    itodd_test = BOPDataset('../data/bop/itodd', subset='train_pbr', split='test', test_ratio=0.1)  
+    itodd_train = BOPDataset('./data/bop/itodd', subset='train_pbr', split='train', test_ratio=0.1)
+    itodd_test = BOPDataset('./data/bop/itodd', subset='train_pbr', split='test', test_ratio=0.1)  
 
     print(f'Number of training samples: {len(itodd_train)}')
     print(f'Number of test samples: {len(itodd_test)}')
 
-    rgb, targets = itodd_train[1]
-    visualize_data(rgb, targets)
+    rgb, targets, cam_K = itodd_train[1]
+    visualize_detections(rgb, targets)
 
     
 

@@ -12,6 +12,9 @@ import math
 from ..scripts import params_config
 
 def get_model(num_classes):
+    """
+    Return a pre-trained Mask R-CNN model with a custom classifier head.
+    """
     # Load a pre-trained Mask R-CNN model
     model = maskrcnn_resnet50_fpn(weights=True)
     # Update the classifier to match the number of classes
@@ -25,9 +28,12 @@ def get_model(num_classes):
     )
     return model
 
-def visualize_data(rgb, targets, preds=None):
+def visualize_detections(rgb, targets, preds=None):
+    """
+    Visualize the RGB image, target masks, target boxes, and predicted boxes.
+    """
     # Delete content of the figures folder
-    folder = './custom_patch_extraction/figures/'
+    folder = './surfemb/patch_extraction/figures/'
     for filename in os.listdir(folder):
         file_path = os.path.join(folder, filename)
         try:
@@ -45,10 +51,10 @@ def visualize_data(rgb, targets, preds=None):
 
     # Save RGB image and masks as single layer binary images for visualization
     rgb = ToPILImage()(rgb)
-    rgb.save('./custom_patch_extraction/figures/rgb.png')
+    rgb.save('./surfemb/patch_extraction/figures/rgb.png')
     for i in range(masks_t.size(0)):
         mask_img_t = Image.fromarray((masks_t[i].numpy()).astype(np.uint8))
-        mask_img_t.save(f'./custom_patch_extraction/figures/target_mask_{i}_object_{labels_t[i]}.png')
+        mask_img_t.save(f'./surfemb/patch_extraction/figures/target_mask_{i}_object_{labels_t[i]}.png')
     
     # Visualize the bounding boxes
     fig, ax = plt.subplots(1)
@@ -59,7 +65,7 @@ def visualize_data(rgb, targets, preds=None):
         ax.add_patch(rect)
         ax.text(box[0], box[1], f'Object {labels_t[i]}', color='g')
     plt.axis('off')
-    plt.savefig('./custom_patch_extraction/figures/target_boxes.png')
+    plt.savefig('./surfemb/patch_extraction/figures/target_boxes.png')
     plt.close() 
 
     # Do the same for the predictions if available
@@ -70,7 +76,7 @@ def visualize_data(rgb, targets, preds=None):
         masks_p = (masks_p * 255).byte()
         for i in range(masks_p.size(0)):
             mask_img_p = Image.fromarray((masks_p[i].numpy()).astype(np.uint8))
-            mask_img_p.save(f'./custom_patch_extraction/figures/pred_mask_{i}_object_{labels_p[i]}.png')
+            mask_img_p.save(f'./surfemb/patch_extraction/figures/pred_mask_{i}_object_{labels_p[i]}.png')
         fig, ax = plt.subplots(1)
         ax.imshow(rgb)
         for i in range(boxes_p.size(0)):
@@ -79,19 +85,19 @@ def visualize_data(rgb, targets, preds=None):
             ax.add_patch(rect)
             ax.text(box[0], box[1], f'Object {labels_p[i]}', color='r')
         plt.axis('off')
-        plt.savefig('./custom_patch_extraction/figures/pred_boxes.png')
+        plt.savefig('./surfemb/patch_extraction/figures/pred_boxes.png')
         plt.close()
 
         # Save target and pred boxes togheter in a new image  next to each other
-        target_boxes = Image.open('./custom_patch_extraction/figures/target_boxes.png')
+        target_boxes = Image.open('./surfemb/patch_extraction/figures/target_boxes.png')
 
-        pred_boxes = Image.open('./custom_patch_extraction/figures/pred_boxes.png')
+        pred_boxes = Image.open('./surfemb/patch_extraction/figures/pred_boxes.png')
         width, height = target_boxes.size
 
         new_im = Image.new('RGB', (2 * width, height))
         new_im.paste(target_boxes, (0, 0))
         new_im.paste(pred_boxes, (width, 0))
-        new_im.save('./custom_patch_extraction/figures/target_pred_boxes.png')
+        new_im.save('./surfemb/patch_extraction/figures/target_pred_boxes.png')
 
 def compute_iou(box1, box2):
     """
