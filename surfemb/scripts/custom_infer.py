@@ -21,7 +21,7 @@ dataset = BOPDataset('./data/bop/itodd', subset='train_pbr', split='test', test_
 image, target, cam_K = dataset[1]
 render = image.permute(1, 2, 0).numpy() * 255
 render = cv2.cvtColor(render, cv2.COLOR_BGR2RGB)
-image_name = 'image_1'
+image_name = 'test_image'
 if params_config.GRAYSCALE:
     image = image.mean(dim=0, keepdim=True)
 
@@ -120,7 +120,7 @@ for i in tqdm(range(len(preds['labels']))):
     t = pose[:, 3].reshape(3, 1)
     # Render the image
     render = custom_render.render_R_t(render, surface_samples, cam_K, obj_idx, R, t)
-    cv2.imwrite('./results/image_1_render.png', render)
+    cv2.imwrite(f'./results/{image_name}_render.png', render)
     # Append the corrected pose to results
     results['objects'].append({
         'obj_id': obj_ids[obj_idx],

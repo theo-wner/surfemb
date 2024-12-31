@@ -11,7 +11,7 @@ from ..data import obj, instance
 from ..data.config import config
 from ..surface_embedding import SurfaceEmbeddingModel
 
-def worker_init_fn(*_, seed):
+def worker_init_fn(*_):
     # each worker should only use one os thread
     # numpy/cv2 takes advantage of multithreading by default
     import os
@@ -22,7 +22,7 @@ def worker_init_fn(*_, seed):
 
     # random seed
     import numpy as np
-    np.random.seed(seed)
+    np.random.seed(None)
 
 def train_member(seed):
     # load objs
@@ -45,14 +45,14 @@ def train_member(seed):
     n_valid = 200
     data_train, data_valid = torch.utils.data.random_split(
         data, (len(data) - n_valid, n_valid),
-        generator=torch.Generator().manual_seed(seed),
+        generator=torch.Generator().manual_seed(42), # fixed split
     )
 
     loader_args = dict(
         batch_size=params_config.BATCH_SIZE,
         num_workers=params_config.NUM_WORKERS,
         persistent_workers=True, shuffle=True,
-        worker_init_fn=worker_init_fn(seed=seed), pin_memory=True,
+        worker_init_fn=worker_init_fn(), pin_memory=True,
     )
     loader_train = torch.utils.data.DataLoader(data_train, drop_last=True, **loader_args)
     loader_valid = torch.utils.data.DataLoader(data_valid, **loader_args)
@@ -92,5 +92,5 @@ def train_member(seed):
 
 if __name__ == '__main__':
     # Train 10 Ensemble members
-    for seed in range(1, 10):
+    for seed in range(0, 10):
         train_member(seed)
