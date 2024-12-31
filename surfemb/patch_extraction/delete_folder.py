@@ -2,7 +2,7 @@ import shutil
 import os
 
 # Specify the folder path
-folder_path = "./tb_logs"
+folder_path = "../custom_patch_extraction"
 
 # Check if the folder exists
 if os.path.exists(folder_path):
