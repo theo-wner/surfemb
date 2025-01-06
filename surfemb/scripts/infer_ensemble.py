@@ -1,6 +1,6 @@
 from ..patch_extraction.dataset import BOPDataset
 from ..patch_extraction.model import MaskRCNN
-from ..patch_extraction.utils import infer_detector
+from ..patch_extraction.utils import infer_detector, visualize_detections
 from ..surface_embedding import SurfaceEmbeddingModel
 from ..data.renderer import ObjCoordRenderer
 from ..data.obj import load_objs
@@ -65,6 +65,9 @@ if __name__ == '__main__':
     if params_config.GRAYSCALE:
         image = image.mean(dim=0, keepdim=True)
 
+    # Visualize the detections
+    visualize_detections(image, target, './results', image_name)
+
     # Load the detection model
     detection_model = MaskRCNN.load_from_checkpoint(
         './surfemb/patch_extraction/checkpoints/best-checkpoint.ckpt',
@@ -89,18 +92,18 @@ if __name__ == '__main__':
     # Infer the surfemb model on the predictions
     results = predict_with_ensemble(ensemble_models, image, image_name, cam_K, preds, objs, obj_ids, surface_samples, surface_sample_normals, renderer, res_crop)
 
-    # Print the results
-    for result in results:
-        print(f'Object {result["obj_id"]}')
-        print(f'Translation:')
-        print(f'[{result["t_mean"][0]:.6f}] ± [{result["t_std"][0]:.6f}]')
-        print(f'[{result["t_mean"][1]:.6f}] ± [{result["t_std"][1]:.6f}]')
-        print(f'[{result["t_mean"][2]:.6f}] ± [{result["t_std"][2]:.6f}]')
-        print(f'Euler angles:')
-        print(f'[{result["euler_mean"][0]:.6f}] ± [{result["euler_std"][0]:.6f}]')
-        print(f'[{result["euler_mean"][1]:.6f}] ± [{result["euler_std"][1]:.6f}]')
-        print(f'[{result["euler_mean"][2]:.6f}] ± [{result["euler_std"][2]:.6f}]')
-        print()
+    # Save the formatted results
+    with open(f'./results/{image_name}_ensemble_results.txt', 'w') as f:
+        for result in results:
+            f.write(f'Object {result["obj_id"]}\n')
+            f.write(f'Translation:\n')
+            f.write(f'[{result["t_mean"][0]:.6f}] ± [{result["t_std"][0]:.6f}]\n')
+            f.write(f'[{result["t_mean"][1]:.6f}] ± [{result["t_std"][1]:.6f}]\n')
+            f.write(f'[{result["t_mean"][2]:.6f}] ± [{result["t_std"][2]:.6f}]\n')
+            f.write(f'Euler angles:\n')
+            f.write(f'[{result["euler_mean"][0]:.6f}] ± [{result["euler_std"][0]:.6f}]\n')
+            f.write(f'[{result["euler_mean"][1]:.6f}] ± [{result["euler_std"][1]:.6f}]\n')
+            f.write(f'[{result["euler_mean"][2]:.6f}] ± [{result["euler_std"][2]:.6f}]\n\n')
 
 
 

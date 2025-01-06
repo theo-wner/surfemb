@@ -28,12 +28,11 @@ def get_model(num_classes):
     )
     return model
 
-def visualize_detections(rgb, targets, preds=None):
+def visualize_detections(rgb, targets, folder, image_name, preds=None):
     """
-    Visualize the RGB image, target masks, target boxes, and predicted boxes.
+    Visualize the RGB image, target boxes, and predicted boxes.
     """
     # Delete content of the figures folder
-    folder = './surfemb/patch_extraction/figures/'
     for filename in os.listdir(folder):
         file_path = os.path.join(folder, filename)
         try:
@@ -46,17 +45,9 @@ def visualize_detections(rgb, targets, preds=None):
 
     boxes_t = targets['boxes']
     labels_t = targets['labels']
-    masks_t = targets['masks']
-    masks_t = (masks_t * 255).byte()
-
-    # Save RGB image and masks as single layer binary images for visualization
-    rgb = ToPILImage()(rgb)
-    rgb.save('./surfemb/patch_extraction/figures/rgb.png')
-    for i in range(masks_t.size(0)):
-        mask_img_t = Image.fromarray((masks_t[i].numpy()).astype(np.uint8))
-        mask_img_t.save(f'./surfemb/patch_extraction/figures/target_mask_{i}_object_{labels_t[i]}.png')
     
     # Visualize the bounding boxes
+    rgb = ToPILImage()(rgb.cpu())
     fig, ax = plt.subplots(1)
     ax.imshow(rgb)
     for i in range(boxes_t.size(0)):
@@ -65,18 +56,14 @@ def visualize_detections(rgb, targets, preds=None):
         ax.add_patch(rect)
         ax.text(box[0], box[1], f'Object {labels_t[i]}', color='g')
     plt.axis('off')
-    plt.savefig('./surfemb/patch_extraction/figures/target_boxes.png')
+    plt.savefig(f'{folder}/{image_name}_target_boxes.png')
     plt.close() 
 
     # Do the same for the predictions if available
     if preds is not None:
         boxes_p = preds['boxes']
         labels_p = preds['labels']
-        masks_p = preds['masks']
-        masks_p = (masks_p * 255).byte()
-        for i in range(masks_p.size(0)):
-            mask_img_p = Image.fromarray((masks_p[i].numpy()).astype(np.uint8))
-            mask_img_p.save(f'./surfemb/patch_extraction/figures/pred_mask_{i}_object_{labels_p[i]}.png')
+
         fig, ax = plt.subplots(1)
         ax.imshow(rgb)
         for i in range(boxes_p.size(0)):
@@ -85,19 +72,19 @@ def visualize_detections(rgb, targets, preds=None):
             ax.add_patch(rect)
             ax.text(box[0], box[1], f'Object {labels_p[i]}', color='r')
         plt.axis('off')
-        plt.savefig('./surfemb/patch_extraction/figures/pred_boxes.png')
+        plt.savefig(f'{folder}/{image_name}_pred_boxes.png')
         plt.close()
 
         # Save target and pred boxes togheter in a new image  next to each other
-        target_boxes = Image.open('./surfemb/patch_extraction/figures/target_boxes.png')
+        target_boxes = Image.open(f'{folder}/{image_name}_target_boxes.png')
 
-        pred_boxes = Image.open('./surfemb/patch_extraction/figures/pred_boxes.png')
+        pred_boxes = Image.open(f'{folder}/{image_name}_pred_boxes.png')
         width, height = target_boxes.size
 
         new_im = Image.new('RGB', (2 * width, height))
         new_im.paste(target_boxes, (0, 0))
         new_im.paste(pred_boxes, (width, 0))
-        new_im.save('./surfemb/patch_extraction/figures/target_pred_boxes.png')
+        new_im.save(f'{folder}/{image_name}_target_pred_boxes.png')
 
 def compute_iou(box1, box2):
     """
