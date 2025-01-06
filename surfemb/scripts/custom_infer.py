@@ -15,6 +15,7 @@ from tqdm import tqdm
 import numpy as np
 import json
 import cv2
+from scipy.spatial.transform import Rotation  
 
 def infer_surfemb(image, image_name, cam_K, preds, embedding_model, objs, obj_ids, surface_samples, surface_sample_normals, renderer, res_crop):
     """
@@ -113,6 +114,9 @@ def infer_surfemb(image, image_name, cam_K, preds, embedding_model, objs, obj_id
         pose = np.linalg.inv(cam_K) @ K_crop @ pose_crop
         R = pose[:, :3]
         t = pose[:, 3].reshape(3, 1)
+        # Convert R to Euler angles
+        r = Rotation.from_matrix(R)
+        euler = r.as_euler('zyx', degrees=True)
         # Render the image
         render = custom_render.render_R_t(render, surface_samples, cam_K, obj_idx, R, t)
         cv2.imwrite(f'./results/{image_name}_render.png', render)
@@ -121,6 +125,7 @@ def infer_surfemb(image, image_name, cam_K, preds, embedding_model, objs, obj_id
             'obj_id': obj_ids[obj_idx],
             'R': R.tolist(),
             't': t.tolist(),
+            'euler': euler.tolist(),
         })
 
     return results
