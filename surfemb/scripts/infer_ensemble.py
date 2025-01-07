@@ -30,26 +30,23 @@ def predict_with_ensemble(models, image, image_name, cam_K, preds, objs, obj_ids
         predictions.append(results)
 
     # Calculate the mean and std of the predictions
-    results_per_object = {}
-    for results in predictions:
-        for object in results['objects']:
-            obj_id = object['obj_id']
-            if obj_id not in results_per_object:
-                results_per_object[obj_id] = {
-                    't_mean': [],
-                    'euler_mean': [],
-                }
-            results_per_object[obj_id]['t_mean'].append(object['t'])
-            results_per_object[obj_id]['euler_mean'].append(object['euler'])
+    num_objs = len(predictions[0]['objects'])
+    all_ts = np.zeros((len(predictions), num_objs, 3))
+    all_eulers = np.zeros((len(predictions), num_objs, 3))
+    obj_ids = [object['obj_id'] for object in predictions[0]['objects']]
+    for i in range(num_objs):
+        for j in range(len(predictions)):
+            all_ts[j, i] = np.array(predictions[j]['objects'][i]['t']).flatten()
+            all_eulers[j, i] = np.array(predictions[j]['objects'][i]['euler']).flatten()
 
     ensemble_results = []
-    for obj_id, results in results_per_object.items():
-        mean_t = np.mean(results['t_mean'], axis=0).flatten()
-        std_t = np.std(results['t_mean'], axis=0).flatten()
-        mean_euler = np.mean(results['euler_mean'], axis=0)
-        std_euler = np.std(results['euler_mean'], axis=0)
+    for i in range(num_objs):
+        mean_t = np.mean(all_ts[:, i], axis=0)
+        std_t = np.std(all_ts[:, i], axis=0)
+        mean_euler = np.mean(all_eulers[:, i], axis=0)
+        std_euler = np.std(all_eulers[:, i], axis=0)
         ensemble_results.append({
-            'obj_id': obj_id,
+            'obj_id': obj_ids[i],
             't_mean': mean_t.tolist(),
             't_std': std_t.tolist(),
             'euler_mean': mean_euler.tolist(),
@@ -61,7 +58,7 @@ def predict_with_ensemble(models, image, image_name, cam_K, preds, objs, obj_ids
 if __name__ == '__main__':
     # Create Dataset and get image
     dataset = BOPDataset('./data/bop/itodd', subset='train_pbr', split='test', test_ratio=0.1)
-    image, target, cam_K = dataset[2302]
+    image, target, cam_K = dataset[2]
     image_name = 'test_image'
     if params_config.GRAYSCALE:
         image = image.mean(dim=0, keepdim=True)

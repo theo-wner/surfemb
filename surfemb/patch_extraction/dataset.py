@@ -141,9 +141,7 @@ if __name__ == '__main__':
 
     for i in range(100):
         rgb, targets, cam_K = itodd_test[i]
-        # Show the image with matplotlib
-        plt.imshow(rgb.permute(1, 2, 0))
-        plt.show()
+        visualize_detections(rgb, targets, './results', f'test_image_{i}', None)
 
 
 

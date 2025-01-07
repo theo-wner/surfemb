@@ -42,7 +42,7 @@ def visualize_detections(rgb, targets, folder, image_name, preds=None):
                 shutil.rmtree(file_path)
         except Exception as e:
             print('Failed to delete %s. Reason: %s' % (file_path, e))
-
+    
     boxes_t = targets['boxes']
     labels_t = targets['labels']
     
