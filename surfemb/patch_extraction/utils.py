@@ -61,8 +61,8 @@ def visualize_detections(rgb, targets, folder, image_name, preds=None):
 
     # Do the same for the predictions if available
     if preds is not None:
-        boxes_p = preds['boxes']
-        labels_p = preds['labels']
+        boxes_p = preds['boxes'].cpu()
+        labels_p = preds['labels'].cpu()
 
         fig, ax = plt.subplots(1)
         ax.imshow(rgb)

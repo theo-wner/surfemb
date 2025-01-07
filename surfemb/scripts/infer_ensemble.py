@@ -7,6 +7,7 @@ from ..data.obj import load_objs
 from .. import utils
 from . import params_config
 from .custom_infer import infer_surfemb
+from .debug_estimated_poses import target_to_string, results_to_string, ensemble_results_to_string, print_side_by_side
 from pathlib import Path
 import os
 import numpy as np
@@ -60,13 +61,10 @@ def predict_with_ensemble(models, image, image_name, cam_K, preds, objs, obj_ids
 if __name__ == '__main__':
     # Create Dataset and get image
     dataset = BOPDataset('./data/bop/itodd', subset='train_pbr', split='test', test_ratio=0.1)
-    image, target, cam_K = dataset[1]
+    image, target, cam_K = dataset[2302]
     image_name = 'test_image'
     if params_config.GRAYSCALE:
         image = image.mean(dim=0, keepdim=True)
-
-    # Visualize the detections
-    visualize_detections(image, target, './results', image_name)
 
     # Load the detection model
     detection_model = MaskRCNN.load_from_checkpoint(
@@ -86,24 +84,19 @@ if __name__ == '__main__':
     # Infer the detection model on the image
     preds = infer_detector(detection_model, image)
 
+    # Visualize the detections
+    visualize_detections(image, target, './results', image_name, preds)
+
     # Load the ensemble models
     ensemble_models = load_models('./data/models/ensemble')
 
     # Infer the surfemb model on the predictions
     results = predict_with_ensemble(ensemble_models, image, image_name, cam_K, preds, objs, obj_ids, surface_samples, surface_sample_normals, renderer, res_crop)
 
-    # Save the formatted results
-    with open(f'./results/{image_name}_ensemble_results.txt', 'w') as f:
-        for result in results:
-            f.write(f'Object {result["obj_id"]}\n')
-            f.write(f'Translation:\n')
-            f.write(f'[{result["t_mean"][0]:.6f}] ± [{result["t_std"][0]:.6f}]\n')
-            f.write(f'[{result["t_mean"][1]:.6f}] ± [{result["t_std"][1]:.6f}]\n')
-            f.write(f'[{result["t_mean"][2]:.6f}] ± [{result["t_std"][2]:.6f}]\n')
-            f.write(f'Euler angles:\n')
-            f.write(f'[{result["euler_mean"][0]:.6f}] ± [{result["euler_std"][0]:.6f}]\n')
-            f.write(f'[{result["euler_mean"][1]:.6f}] ± [{result["euler_std"][1]:.6f}]\n')
-            f.write(f'[{result["euler_mean"][2]:.6f}] ± [{result["euler_std"][2]:.6f}]\n\n')
+    # Print the results
+    target_string = target_to_string(target)
+    ensemble_results_string = ensemble_results_to_string(results)
+    print_side_by_side(target_string, ensemble_results_string)
 
 
 

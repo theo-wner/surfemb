@@ -160,6 +160,8 @@ if __name__ == '__main__':
 
     # Infer the detection model on the image
     preds = infer_detector(detection_model, image)
+    print(preds['boxes'])
+    print(preds['labels'])
 
     # Infer the surfemb model on the predictions
     results = infer_surfemb(image, image_name, cam_K, preds, embedding_model, objs, obj_ids, surface_samples, surface_sample_normals, renderer, res_crop)

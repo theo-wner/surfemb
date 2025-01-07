@@ -8,6 +8,8 @@ import random
 import numpy as np
 from torch.utils.data import Dataset
 from torchvision.io import read_image
+from scipy.spatial.transform import Rotation
+import matplotlib.pyplot as plt
 
 class BOPDataset(Dataset):
     """ Dataset class for TLESS. """
@@ -109,7 +111,11 @@ class BOPDataset(Dataset):
                 boxes = torch.cat((boxes, torch.tensor([box], dtype=torch.float32)))
                 labels = torch.cat((labels, torch.tensor([object['obj_id']], dtype=torch.int64)))
                 masks = torch.cat((masks, mask_stack[obj_cnt].unsqueeze(0)))
-                rots_trans.append({'R': np.array(object['cam_R_m2c']).reshape(3,3), 't': np.array(object['cam_t_m2c']).reshape(3,1)})
+                R = np.array(object['cam_R_m2c']).reshape(3,3)
+                t = np.array(object['cam_t_m2c']).reshape(3,1)
+                r = Rotation.from_matrix(R)
+                euler = np.array(r.as_euler('zyx', degrees=True).tolist())
+                rots_trans.append({'R': R, 't': t, 'euler': euler})
         return boxes, labels, masks, rots_trans
 
     def convert_box(self, box):
@@ -133,8 +139,13 @@ if __name__ == '__main__':
     print(f'Number of training samples: {len(itodd_train)}')
     print(f'Number of test samples: {len(itodd_test)}')
 
-    rgb, targets, cam_K = itodd_train[1]
-    visualize_detections(rgb, targets)
+    for i in range(100):
+        rgb, targets, cam_K = itodd_test[i]
+        # Show the image with matplotlib
+        plt.imshow(rgb.permute(1, 2, 0))
+        plt.show()
+
+
 
     
 
