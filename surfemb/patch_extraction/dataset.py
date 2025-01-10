@@ -12,7 +12,7 @@ from scipy.spatial.transform import Rotation
 import matplotlib.pyplot as plt
 
 class BOPDataset(Dataset):
-    """ Dataset class for TLESS. """
+    """ Dataset class for a BOP Dataset. """
 
     def __init__(self, root_dir, subset='train_pbr', split='train', test_ratio=0.3):
         """ Args:
